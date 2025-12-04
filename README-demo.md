@@ -61,12 +61,12 @@ After setting up the backend dependencies, you can run the development server:
 
 2. Start the FastAPI development server:
    ```bash
-   uv run uvicorn main:app --host 0.0.0.0 --port 8000
+   uv run uvicorn main:app --host 0.0.0.0 --port 8080
    ```
 
-3. The backend API will be accessible at http://localhost:8000
+3. The backend API will be accessible at http://localhost:8080
 
-**Note**: If port 8000 is already in use (e.g., by Docker containers), either stop the containers with `make clean` or use a different port like `--port 8001`.
+**Note**: If port 8080 is already in use (e.g., by Docker containers), either stop the containers with `make clean` or use a different port like `--port 8001`.
 
 ### Frontend
 

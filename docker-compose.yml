@@ -10,7 +10,7 @@ services:
       - ~/.aws/config:/root/.aws/config:ro
       - ~/.aws/sso/cache:/root/.aws/sso/cache:rw  # Only make cache writable
     ports:
-      - "8000:8000"
+      - "8080:8080"
     restart: always
     container_name: demoname-backend
   demoname-frontend:
