@@ -50,6 +50,9 @@ class RepaymentHistoryService:
             f"for {user_name} from {source_institution}"
         )
 
+        # Record data access in StatusHistory (audit trail)
+        self.consent_validator.record_data_access(consent_id, "REPAYMENT_HISTORY")
+
         # Consume if one-time consent
         consent_status = self.consent_validator.consume_if_one_time(consent)
 

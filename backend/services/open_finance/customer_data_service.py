@@ -116,6 +116,10 @@ class CustomerDataService:
         # Step 6: Query data based on purpose, gated by consent permissions
         result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions)
 
+        # Step 6b: Record data access in StatusHistory (audit trail)
+        accessed_resources = [k.upper() for k, v in result.items() if v is not None]
+        self._record_data_access(consent_id, f"EXTERNAL_DATA ({', '.join(accessed_resources)})")
+
         # Step 7: Mark as CONSUMED only for one-time consents
         consent_type = consent.get("ConsentType", "DURATION_BASED")
         if consent_type == "ONE_TIME":
@@ -274,3 +278,24 @@ class CustomerDataService:
             }
         )
         logging.info(f"Consent {consent_id} marked as EXPIRED")
+
+    def _record_data_access(self, consent_id: str, resource: str) -> None:
+        """Record a data access event in the consent's StatusHistory.
+
+        Args:
+            consent_id: The ConsentId that was used.
+            resource: Description of the resource accessed.
+        """
+        now = datetime.now(timezone.utc)
+        self.consents_collection.update_one(
+            {"ConsentId": consent_id},
+            {
+                "$set": {"StatusUpdateDateTime": now},
+                "$push": {"StatusHistory": {
+                    "Status": "DATA_ACCESSED",
+                    "DateTime": now,
+                    "Reason": f"Data retrieved: {resource}"
+                }}
+            }
+        )
+        logging.info(f"Consent {consent_id}: recorded data access for {resource}")

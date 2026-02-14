@@ -73,6 +73,30 @@ class ConsentValidator:
 
         return consent, source_institution
 
+    def record_data_access(self, consent_id: str, resource: str) -> None:
+        """Record a data access event in the consent's StatusHistory.
+
+        This creates an audit trail of which resources were accessed
+        using this consent, regardless of whether the status changes.
+
+        Args:
+            consent_id: The ConsentId that was used.
+            resource: The resource that was accessed (e.g. 'CUSTOMER_IDENTIFICATION', 'REPAYMENT_HISTORY').
+        """
+        now = datetime.now(timezone.utc)
+        self.consents_collection.update_one(
+            {"ConsentId": consent_id},
+            {
+                "$set": {"StatusUpdateDateTime": now},
+                "$push": {"StatusHistory": {
+                    "Status": "DATA_ACCESSED",
+                    "DateTime": now,
+                    "Reason": f"Data retrieved: {resource}"
+                }}
+            }
+        )
+        logging.info(f"Consent {consent_id}: recorded data access for {resource}")
+
     def consume_if_one_time(self, consent: dict) -> str:
         """Consume the consent if it's a ONE_TIME type.
 
