@@ -1,6 +1,7 @@
 # Kanopy
 knowledge_base_kanopy/
-
+.claude/
+_state.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
