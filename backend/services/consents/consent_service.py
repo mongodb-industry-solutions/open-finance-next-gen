@@ -37,6 +37,9 @@ PURPOSE_PERMISSIONS = {
     ],
 }
 
+# All available permissions (superset) — used when purpose is None (general access)
+ALL_PERMISSIONS = CREDIT_PORTABILITY_PERMISSIONS
+
 
 class ConsentService:
     """This class provides methods to manage consent lifecycle in the database."""
@@ -94,7 +97,7 @@ class ConsentService:
     # Demo mode: expiration_days value is treated as MINUTES (3-12)
     # This simulates Brazil Open Finance 12-month max in a demo-friendly timeframe
     # Use 0 for ONE_TIME consents (single use, no expiration - becomes CONSUMED after use)
-    MAX_EXPIRATION_DAYS = 12   # Treated as minutes in demo
+    MAX_EXPIRATION_DAYS = 30   # Treated as minutes in demo
     MIN_EXPIRATION_DAYS = 3    # Treated as minutes in demo (for DURATION_BASED)
     DEFAULT_EXPIRATION_DAYS = 6
 
@@ -102,7 +105,7 @@ class ConsentService:
         self,
         consumer_user_name: str,
         consumer_user_id: str,
-        purpose: str,
+        purpose: Optional[str],
         source_institution_name: str,
         expiration_days: int = None,
         permissions: Optional[List[str]] = None
@@ -158,11 +161,11 @@ class ConsentService:
                 )
             expiration = datetime.now(timezone.utc) + timedelta(minutes=expiration_days)
 
-        # Validate purpose
+        # Validate purpose (None is allowed for general access)
         validate_purpose(purpose)
 
         # Resolve permissions: auto-assign from purpose or validate provided subset
-        default_permissions = PURPOSE_PERMISSIONS.get(purpose)
+        default_permissions = PURPOSE_PERMISSIONS.get(purpose) if purpose else ALL_PERMISSIONS
         if permissions is None:
             permissions = list(default_permissions)
         else:
@@ -170,8 +173,9 @@ class ConsentService:
             requested = set(permissions)
             extras = requested - allowed
             if extras:
+                purpose_label = f"purpose '{purpose}'" if purpose else "general access"
                 raise ValueError(
-                    f"Permissions {extras} are not allowed for purpose '{purpose}'. "
+                    f"Permissions {extras} are not allowed for {purpose_label}. "
                     f"Allowed permissions: {sorted(allowed)}"
                 )
             if not requested:

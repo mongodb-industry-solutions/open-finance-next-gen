@@ -95,19 +95,21 @@ def is_terminal(status: str) -> bool:
     return status in TERMINAL_STATUSES
 
 
-def validate_purpose(purpose: str) -> bool:
+def validate_purpose(purpose) -> bool:
     """
     Validate if a purpose is valid.
 
     Args:
-        purpose (str): The purpose to validate.
+        purpose: The purpose to validate. None is allowed (general access).
 
     Returns:
-        bool: True if purpose is valid.
+        bool: True if purpose is valid or None.
 
     Raises:
         ValueError: If the purpose is not valid.
     """
+    if purpose is None:
+        return True
     if purpose not in VALID_PURPOSES:
         raise ValueError(f"Invalid purpose: '{purpose}'. Valid purposes are: {VALID_PURPOSES}")
     return True
