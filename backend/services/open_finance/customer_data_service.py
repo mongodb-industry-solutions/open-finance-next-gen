@@ -108,10 +108,8 @@ class CustomerDataService:
 
         if not source_institution:
             raise ValueError("Consent is missing source institution information.")
-        if not purpose:
-            raise ValueError("Consent is missing purpose information.")
 
-        logging.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose}")
+        logging.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose or 'GENERAL_ACCESS'}")
 
         # Step 6: Query data based on purpose, gated by consent permissions
         result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions)
@@ -133,7 +131,7 @@ class CustomerDataService:
         result["consent_id"] = consent_id
         result["consent_type"] = consent_type
         result["source_institution"] = source_institution
-        result["purpose"] = purpose
+        result["purpose"] = purpose or "GENERAL_ACCESS"
 
         return result
 
@@ -221,6 +219,52 @@ class CustomerDataService:
                 }))
                 result["accounts"] = accounts
                 logging.info(f"FINANCIAL_ADVICE: Retrieved {len(accounts)} accounts")
+
+        elif purpose is None:
+            # General access consent — query all data sources based on permissions
+            if "ACCOUNTS_READ" in permissions:
+                accounts = list(self.external_accounts_collection.find({
+                    "AccountUser.UserName": user_name,
+                    "AccountBank": institution_name
+                }))
+                result["accounts"] = accounts
+                logging.info(f"GENERAL_ACCESS: Retrieved {len(accounts)} accounts")
+
+            if "LOANS_READ" in permissions:
+                products = list(self.external_products_collection.find({
+                    "ProductCustomer.UserName": user_name,
+                    "ProductBank": institution_name
+                }))
+                result["products"] = products
+                logging.info(f"GENERAL_ACCESS: Retrieved {len(products)} products")
+
+            if "TRANSACTIONS_READ" in permissions:
+                transactions = list(self.external_transactions_collection.find({
+                    "TransactionUser.UserName": user_name,
+                    "TransactionBank": institution_name
+                }))
+                result["transactions"] = transactions
+                logging.info(f"GENERAL_ACCESS: Retrieved {len(transactions)} transactions")
+
+            if "ACCOUNTS_BALANCES_READ" in permissions:
+                # Balance data comes from accounts — already retrieved above
+                logging.info("GENERAL_ACCESS: ACCOUNTS_BALANCES_READ granted (balances included in accounts)")
+
+            if "REPAYMENT_HISTORY_READ" in permissions:
+                repayment_history = list(self.external_repayment_history_collection.find({
+                    "PaymentUser.UserName": user_name,
+                    "ProductBank": institution_name
+                }))
+                result["repayment_history"] = repayment_history
+                logging.info(f"GENERAL_ACCESS: Retrieved {len(repayment_history)} repayment records")
+
+            if "CUSTOMER_IDENTIFICATION_READ" in permissions:
+                customer_identification = list(self.external_customer_identification_collection.find({
+                    "CustomerUser.UserName": user_name,
+                    "CustomerBank": institution_name
+                }))
+                result["customer_identification"] = customer_identification
+                logging.info(f"GENERAL_ACCESS: Retrieved {len(customer_identification)} customer identification records")
 
         else:
             logging.warning(f"Unknown purpose: {purpose}")
