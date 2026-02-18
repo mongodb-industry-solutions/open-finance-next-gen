@@ -1,0 +1,13 @@
+env:
+  NODE_ENV: prod
+
+envSecrets:
+  MONGODB_URI: open-finance-consent
+  OPENFINANCE_DB_NAME: open-finance-consent
+  LEAFYBANK_DB_NAME: open-finance-consent
+
+serviceAccount:
+  enabled: true
+  irsa:
+    accountId: "275662791714"
+    roleName: "kanopy-prod-cicd-irsa"
