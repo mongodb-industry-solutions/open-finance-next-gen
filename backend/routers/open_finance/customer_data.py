@@ -65,6 +65,13 @@ class ExternalDataResponse(BaseModel):
     purpose: str
 
 
+class ExternalTransactionsResponse(BaseModel):
+    transactions: List[Dict]
+    consent_id: str
+    source_institution: str
+    purpose: str
+
+
 # Define API Endpoints
 
 @router.get("/{user_identifier}/external-data", response_model=ExternalDataResponse)
@@ -117,4 +124,57 @@ async def retrieve_external_data(
         raise he
     except Exception as e:
         logging.error(f"Error retrieving external data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/{user_identifier}/external-transactions", response_model=ExternalTransactionsResponse)
+@limiter.limit("60/minute")
+async def retrieve_external_transactions(
+    request: Request,
+    user_identifier: str,
+    consent_id: str = Query(..., description="The ConsentId to use for data retrieval"),
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
+):
+    """
+    Retrieve only external transactions using an authorized consent.
+
+    Requires bearer token authentication + a valid, authorized consent
+    with TRANSACTIONS_READ permission.
+
+    This endpoint:
+    1. Validates bearer token and verifies user identity
+    2. Validates the consent exists, is AUTHORISED, and has TRANSACTIONS_READ permission
+    3. Retrieves transactions from the source institution
+    """
+    try:
+        # Validate bearer token and verify authenticated user matches path
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+        if user_auth['UserName'] != user_identifier:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: Bearer token does not match the requested user."
+            )
+
+        # Retrieve transactions using the consent
+        result = customer_data_service.retrieve_transactions_with_consent(
+            consent_id=consent_id,
+            user_name=user_auth['UserName']
+        )
+
+        return Response(
+            content=json.dumps(result, cls=MyJSONEncoder),
+            media_type="application/json"
+        )
+
+    except PermissionError as pe:
+        logging.error(f"Permission error retrieving external transactions: {str(pe)}")
+        raise HTTPException(status_code=403, detail=str(pe))
+    except ValueError as ve:
+        logging.error(f"Validation error retrieving external transactions: {str(ve)}")
+        raise HTTPException(status_code=403, detail=str(ve))
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logging.error(f"Error retrieving external transactions: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

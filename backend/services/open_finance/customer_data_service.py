@@ -271,6 +271,82 @@ class CustomerDataService:
 
         return result
 
+    def retrieve_transactions_with_consent(self, consent_id: str, user_name: str) -> Dict:
+        """Retrieve only external transactions based on an authorized consent.
+
+        Args:
+            consent_id (str): The ConsentId to use for data retrieval.
+            user_name (str): The username of the requesting user.
+
+        Returns:
+            Dict: Retrieved transactions with consent metadata.
+
+        Raises:
+            ValueError: If consent is invalid, not authorized, or doesn't belong to user.
+            PermissionError: If consent lacks TRANSACTIONS_READ permission.
+        """
+        # Step 1: Load consent
+        consent = self.consents_collection.find_one({"ConsentId": consent_id})
+        if not consent:
+            raise ValueError(f"Consent '{consent_id}' not found.")
+
+        # Step 2: Check if consent has expired
+        expiration_dt = consent.get("ExpirationDateTime")
+        if expiration_dt:
+            now = datetime.now(timezone.utc)
+            if expiration_dt.tzinfo is None:
+                expiration_dt = expiration_dt.replace(tzinfo=timezone.utc)
+            if expiration_dt < now:
+                self._expire_consent(consent_id)
+                raise ValueError(f"Consent '{consent_id}' has expired.")
+
+        # Step 3: Verify consent status is AUTHORISED
+        status = consent.get("Status")
+        if not can_retrieve_data(status):
+            if status == "CONSUMED":
+                raise ValueError(f"Consent '{consent_id}' has already been used (one-time consent).")
+            elif status == "AWAITING_AUTHORISATION":
+                raise ValueError(f"Consent '{consent_id}' is not yet authorized. Please approve it first.")
+            elif status in ("REJECTED", "REVOKED", "EXPIRED"):
+                raise ValueError(f"Consent '{consent_id}' is no longer valid (status: {status}).")
+            else:
+                raise ValueError(f"Consent '{consent_id}' cannot be used for data retrieval (status: {status}).")
+
+        # Step 4: Verify consent belongs to requesting user
+        consent_user = consent.get("Consumer", {}).get("UserName")
+        if consent_user != user_name:
+            raise ValueError("Unauthorized: This consent does not belong to you.")
+
+        # Step 5: Verify TRANSACTIONS_READ permission
+        permissions = consent.get("Permissions", [])
+        if "TRANSACTIONS_READ" not in permissions:
+            raise PermissionError("Consent does not include TRANSACTIONS_READ permission.")
+
+        # Step 6: Query external transactions
+        source_institution = consent.get("SourceInstitution", {}).get("InstitutionName")
+        if not source_institution:
+            raise ValueError("Consent is missing source institution information.")
+
+        purpose = consent.get("Purpose")
+
+        logging.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
+
+        transactions = list(self.external_transactions_collection.find({
+            "TransactionUser.UserName": user_name,
+            "TransactionBank": source_institution
+        }))
+        logging.info(f"Retrieved {len(transactions)} external transactions")
+
+        # Step 7: Record data access for audit
+        self._record_data_access(consent_id, "EXTERNAL_TRANSACTIONS")
+
+        return {
+            "transactions": transactions,
+            "consent_id": consent_id,
+            "source_institution": source_institution,
+            "purpose": purpose or "GENERAL_ACCESS"
+        }
+
     def _consume_consent(self, consent_id: str) -> None:
         """Mark a one-time consent as consumed after data retrieval.
 
