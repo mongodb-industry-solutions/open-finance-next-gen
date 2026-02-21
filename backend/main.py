@@ -20,6 +20,7 @@ from routers.leafy_bank.customers import secure as lb_customers_secure
 from routers.leafy_bank.spending import secure as lb_spending_secure
 from routers.leafy_bank.portability import secure as lb_portability_secure
 from routers import debug as debug_router
+from routers import demo as demo_router
 
 # Logging
 logging.basicConfig(
@@ -179,6 +180,13 @@ app.include_router(
     lb_portability_secure.router,
     prefix="/api/v1/leafybank/portability",
     tags=["Leafy Bank Portability"]
+)
+
+# Demo router (scenario management for variable transactions)
+app.include_router(
+    demo_router.router,
+    prefix="/api/v1/demo",
+    tags=["Demo"]
 )
 
 # Debug router (for development/debugging)
