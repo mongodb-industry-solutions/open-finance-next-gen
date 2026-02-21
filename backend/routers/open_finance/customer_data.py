@@ -32,7 +32,7 @@ OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 CONSENTS_COLLECTION = "consents"
 EXTERNAL_ACCOUNTS_COLLECTION = "external_accounts"
 EXTERNAL_PRODUCTS_COLLECTION = "external_products"
-EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions"
+EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions_test"  # TODO: revert to "external_transactions" when ISO 20022 migration is complete
 EXTERNAL_REPAYMENT_HISTORY_COLLECTION = "external_repayment_history"
 EXTERNAL_CUSTOMER_IDENTIFICATION_COLLECTION = "external_customer_identification"
 

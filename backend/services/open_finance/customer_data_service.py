@@ -180,8 +180,8 @@ class CustomerDataService:
 
             if "TRANSACTIONS_READ" in permissions:
                 transactions = list(self.external_transactions_collection.find({
-                    "TransactionUser.UserName": user_name,
-                    "TransactionBank": institution_name
+                    "Dbtr.Nm": user_name,
+                    "Acct.Svcr": institution_name
                 }))
                 result["transactions"] = transactions
                 logging.info(f"{purpose}: Retrieved {len(transactions)} transactions")
@@ -206,8 +206,8 @@ class CustomerDataService:
             # Financial advice: transactions and accounts only
             if "TRANSACTIONS_READ" in permissions:
                 transactions = list(self.external_transactions_collection.find({
-                    "TransactionUser.UserName": user_name,
-                    "TransactionBank": institution_name
+                    "Dbtr.Nm": user_name,
+                    "Acct.Svcr": institution_name
                 }))
                 result["transactions"] = transactions
                 logging.info(f"FINANCIAL_ADVICE: Retrieved {len(transactions)} transactions")
@@ -240,8 +240,8 @@ class CustomerDataService:
 
             if "TRANSACTIONS_READ" in permissions:
                 transactions = list(self.external_transactions_collection.find({
-                    "TransactionUser.UserName": user_name,
-                    "TransactionBank": institution_name
+                    "Dbtr.Nm": user_name,
+                    "Acct.Svcr": institution_name
                 }))
                 result["transactions"] = transactions
                 logging.info(f"GENERAL_ACCESS: Retrieved {len(transactions)} transactions")
@@ -332,8 +332,8 @@ class CustomerDataService:
         logging.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
 
         transactions = list(self.external_transactions_collection.find({
-            "TransactionUser.UserName": user_name,
-            "TransactionBank": source_institution
+            "Dbtr.Nm": user_name,
+            "Acct.Svcr": source_institution
         }))
         logging.info(f"Retrieved {len(transactions)} external transactions")
 
