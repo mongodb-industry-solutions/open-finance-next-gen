@@ -19,6 +19,7 @@ from routers.leafy_bank.products import secure as lb_products_secure
 from routers.leafy_bank.customers import secure as lb_customers_secure
 from routers.leafy_bank.spending import secure as lb_spending_secure
 from routers.leafy_bank.portability import secure as lb_portability_secure
+from routers.leafy_bank.mcc import secure as lb_mcc_secure
 from routers import debug as debug_router
 from routers import demo as demo_router
 
@@ -180,6 +181,13 @@ app.include_router(
     lb_portability_secure.router,
     prefix="/api/v1/leafybank/portability",
     tags=["Leafy Bank Portability"]
+)
+
+# Include the Leafy Bank MCC classification router (vector search)
+app.include_router(
+    lb_mcc_secure.router,
+    prefix="/api/v1/leafybank/mcc",
+    tags=["Leafy Bank MCC Classification"]
 )
 
 # Demo router (scenario management for variable transactions)
