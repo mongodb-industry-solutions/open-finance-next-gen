@@ -5,6 +5,7 @@ envSecrets:
   MONGODB_URI: open-finance-consent
   OPENFINANCE_DB_NAME: open-finance-consent
   LEAFYBANK_DB_NAME: open-finance-consent
+  VOYAGE_API_KEY: open-finance-consent
 
 serviceAccount:
   enabled: true
