@@ -12,7 +12,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251101SAF001", "AcctSvcrRef": "VAR2025110100001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -27,7 +27,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "UBIL" },
     "Refs": { "EndToEndId": "VAR20251103PAC001", "AcctSvcrRef": "VAR2025110300001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -42,7 +42,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "UBIL" },
     "Refs": { "EndToEndId": "VAR20251103COM001", "AcctSvcrRef": "VAR2025110300002" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -57,7 +57,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "HLTH" },
     "Refs": { "EndToEndId": "VAR20251105DRS001", "AcctSvcrRef": "VAR2025110500001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -72,7 +72,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "TRPT" },
     "Refs": { "EndToEndId": "VAR20251106SHL001", "AcctSvcrRef": "VAR2025110600001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -87,7 +87,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "SAVG" },
     "Refs": { "EndToEndId": "VAR20251107VAN001", "AcctSvcrRef": "VAR2025110700001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -102,7 +102,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "MDCS" },
     "Refs": { "EndToEndId": "VAR20251108CVS001", "AcctSvcrRef": "VAR2025110800001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -117,7 +117,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "TRPT" },
     "Refs": { "EndToEndId": "VAR20251110MET001", "AcctSvcrRef": "VAR2025111000001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -132,7 +132,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "UBIL" },
     "Refs": { "EndToEndId": "VAR20251112TMO001", "AcctSvcrRef": "VAR2025111200001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -147,7 +147,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "INSU" },
     "Refs": { "EndToEndId": "VAR20251114BLU001", "AcctSvcrRef": "VAR2025111400001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -162,7 +162,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251115TRJ001", "AcctSvcrRef": "VAR2025111500001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -177,7 +177,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251117OLI001", "AcctSvcrRef": "VAR2025111700001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -192,7 +192,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "HLTH" },
     "Refs": { "EndToEndId": "VAR20251119FIT001", "AcctSvcrRef": "VAR2025111900001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -207,7 +207,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "INSU" },
     "Refs": { "EndToEndId": "VAR20251120STA001", "AcctSvcrRef": "VAR2025112000001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "204515807", "Tp": "CACC", "Svcr": "Green Bank" },
@@ -222,6 +222,6 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251122STB001", "AcctSvcrRef": "VAR2025112200001" },
-    "TxVar": true
+    "Profile": "balanced"
   }
 ]

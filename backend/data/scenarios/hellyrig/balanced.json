@@ -12,7 +12,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251101ALD001", "AcctSvcrRef": "VAR2025110100001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -27,7 +27,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "TRPT" },
     "Refs": { "EndToEndId": "VAR20251102CHV001", "AcctSvcrRef": "VAR2025110200001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -42,7 +42,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "UBIL" },
     "Refs": { "EndToEndId": "VAR20251103SPC001", "AcctSvcrRef": "VAR2025110300001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -57,7 +57,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "MDCS" },
     "Refs": { "EndToEndId": "VAR20251105WAL001", "AcctSvcrRef": "VAR2025110500001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -72,7 +72,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "SAVG" },
     "Refs": { "EndToEndId": "VAR20251106NEO001", "AcctSvcrRef": "VAR2025110600001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -87,7 +87,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "TRPT" },
     "Refs": { "EndToEndId": "VAR20251108UBR001", "AcctSvcrRef": "VAR2025110800001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -102,7 +102,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "HLTH" },
     "Refs": { "EndToEndId": "VAR20251109MIN001", "AcctSvcrRef": "VAR2025110900001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -117,7 +117,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251111PAN001", "AcctSvcrRef": "VAR2025111100001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -132,7 +132,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "SUBB" },
     "Refs": { "EndToEndId": "VAR20251113NFL001", "AcctSvcrRef": "VAR2025111300001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -147,7 +147,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251115WMT001", "AcctSvcrRef": "VAR2025111500001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -162,7 +162,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "TRPT" },
     "Refs": { "EndToEndId": "VAR20251117CHV001", "AcctSvcrRef": "VAR2025111700001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -177,7 +177,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "OTHR" },
     "Refs": { "EndToEndId": "VAR20251119REG001", "AcctSvcrRef": "VAR2025111900001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -192,7 +192,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "UBIL" },
     "Refs": { "EndToEndId": "VAR20251121CRK001", "AcctSvcrRef": "VAR2025112100001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -207,7 +207,7 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "MCRD", "SubFmly": "POSD" },
     "Purp": { "Cd": "GDDS" },
     "Refs": { "EndToEndId": "VAR20251122TGT001", "AcctSvcrRef": "VAR2025112200001" },
-    "TxVar": true
+    "Profile": "balanced"
   },
   {
     "Acct": { "Id": "730891245", "Tp": "CACC", "Svcr": "NeoFinance" },
@@ -222,6 +222,6 @@
     "BkTxCd": { "Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "AUTT" },
     "Purp": { "Cd": "SAVG" },
     "Refs": { "EndToEndId": "VAR20251124NEO001", "AcctSvcrRef": "VAR2025112400001" },
-    "TxVar": true
+    "Profile": "balanced"
   }
 ]

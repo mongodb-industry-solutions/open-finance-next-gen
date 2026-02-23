@@ -80,6 +80,7 @@ async def retrieve_external_data(
     request: Request,
     user_identifier: str,
     consent_id: str = Query(..., description="The ConsentId to use for data retrieval"),
+    profile: Optional[str] = Query(None, description="Spending profile filter: overspender, balanced, or saver"),
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
@@ -109,7 +110,8 @@ async def retrieve_external_data(
         # Retrieve data using the consent
         result = customer_data_service.retrieve_data_with_consent(
             consent_id=consent_id,
-            user_name=user_auth['UserName']
+            user_name=user_auth['UserName'],
+            profile=profile
         )
 
         return Response(
@@ -133,6 +135,7 @@ async def retrieve_external_transactions(
     request: Request,
     user_identifier: str,
     consent_id: str = Query(..., description="The ConsentId to use for data retrieval"),
+    profile: Optional[str] = Query(None, description="Spending profile filter: overspender, balanced, or saver"),
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
@@ -159,7 +162,8 @@ async def retrieve_external_transactions(
         # Retrieve transactions using the consent
         result = customer_data_service.retrieve_transactions_with_consent(
             consent_id=consent_id,
-            user_name=user_auth['UserName']
+            user_name=user_auth['UserName'],
+            profile=profile
         )
 
         return Response(
