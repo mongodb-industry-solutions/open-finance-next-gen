@@ -695,9 +695,9 @@
     "ValDt": {
       "$date": "2025-11-26T14:30:00Z"
     },
-    "AddtlNtryInf": "Luxury designer furniture and home accent pieces, oversized leather armchair and handcrafted decorative lighting",
+    "AddtlNtryInf": "Latest MacBook Pro laptop, AirPods Max headphones, Apple Watch Ultra and premium accessories bundle",
     "Cdtr": {
-      "Nm": "Restoration Hardware"
+      "Nm": "Apple Store"
     },
     "BkTxCd": {
       "Domn": "PMNT",
@@ -708,7 +708,7 @@
       "Cd": "GDDS"
     },
     "Refs": {
-      "EndToEndId": "VAR20251126RES001",
+      "EndToEndId": "VAR20251126APL001",
       "AcctSvcrRef": "VAR2025112600001"
     },
     "Profile": "overspender"
