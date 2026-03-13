@@ -6,9 +6,10 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection, get_mongo_connection
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
+from services.internal.users_service import UsersService
 from encoder.json_encoder import MyJSONEncoder
 
 import os
@@ -31,6 +32,12 @@ OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 # Collection names
 CONSENTS_COLLECTION = "encrypted_consents"
 INSTITUTIONS_COLLECTION = "institutions"
+
+# Initialize UsersService for user lookups (users are in leafy_bank database)
+connection = get_mongo_connection()
+LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
+USERS_COLLECTION = "users"
+users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
 
 # Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
@@ -93,10 +100,15 @@ async def create_consent(
         # No bearer token validation - user is already logged into Leafy Bank
         # The consumer_id from the request identifies the logged-in user
 
+        # Look up the user's real ObjectId for Consumer.UserId
+        user = users_service.get_user(consent_data.consumer_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Consumer user not found")
+
         # Create the consent
         consent = consent_service.create_consent(
             consumer_user_name=consent_data.consumer_id,
-            consumer_user_id=consent_data.consumer_id,
+            consumer_user_id=str(user["_id"]),
             purpose=consent_data.purpose,
             source_institution_name=consent_data.source_institution_name,
             expiration_days=consent_data.expiration_days,
