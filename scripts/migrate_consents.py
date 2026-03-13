@@ -5,6 +5,10 @@ Reads all documents from the old plaintext collection via a plain client,
 inserts each into the new encrypted collection via an encrypted client
 (auto-encrypts on write), and verifies decryption round-trips correctly.
 
+Supports two KMS providers:
+  KMS_PROVIDER=local (default) — uses master-key.bin for dev
+  KMS_PROVIDER=aws             — uses AWS KMS (auto-discovers credentials)
+
 Prerequisites:
     - Run setup_encrypted_consents.py first to create the encrypted collection
     - backend/encryption_config.json must exist
@@ -41,11 +45,23 @@ CRYPT_SHARED_LIB_PATH = os.getenv(
     "CRYPT_SHARED_LIB_PATH",
     str(BACKEND_DIR / "lib" / "mongo_crypt_v1.dylib"),
 )
+KMS_PROVIDER = os.getenv("KMS_PROVIDER", "local")
+
+
+def build_kms_providers() -> dict:
+    """Build KMS providers dict based on KMS_PROVIDER env var."""
+    if KMS_PROVIDER == "aws":
+        return {"aws": {}}
+    if not MASTER_KEY_PATH.exists():
+        print(f"ERROR: {MASTER_KEY_PATH} not found.")
+        sys.exit(1)
+    return {"local": {"key": MASTER_KEY_PATH.read_bytes()}}
 
 
 def main():
     print("=" * 60)
-    print("Migrate Consents: plaintext → encrypted")
+    print("Migrate Consents: plaintext -> encrypted")
+    print(f"KMS Provider: {KMS_PROVIDER}")
     print("=" * 60)
 
     # Validate prerequisites
@@ -54,14 +70,9 @@ def main():
         print("Run setup_encrypted_consents.py first.")
         sys.exit(1)
 
-    if not MASTER_KEY_PATH.exists():
-        print(f"ERROR: {MASTER_KEY_PATH} not found.")
-        sys.exit(1)
-
     # Load encryption config
     config = json_util.loads(CONFIG_PATH.read_text())
-    master_key = MASTER_KEY_PATH.read_bytes()
-    kms_providers = {"local": {"key": master_key}}
+    kms_providers = build_kms_providers()
 
     # Create plain client (for reading old collection)
     plain_client = MongoClient(MONGODB_URI)

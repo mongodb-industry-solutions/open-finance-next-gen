@@ -1,10 +1,11 @@
 """
 Encrypted MongoDB connection for Queryable Encryption.
 
-Provides an EncryptedMongoDBConnection that subclasses MongoDBConnection,
-wrapping a MongoClient configured with AutoEncryptionOpts. All existing
-services that accept MongoDBConnection work transparently — the driver
-handles encryption/decryption automatically for mapped collections.
+Supports two KMS providers:
+  - "aws" (production/Kanopy) — uses AWS KMS via IRSA, no local key needed
+  - "local" (dev fallback) — reads master-key.bin from disk
+
+Set KMS_PROVIDER=aws and AWS_KMS_KEY_ARN in environment for production.
 """
 
 import os
@@ -49,6 +50,31 @@ def load_encryption_config(config_path: str) -> dict:
     return json_util.loads(raw)
 
 
+def _build_kms_providers() -> dict:
+    """Build KMS providers based on environment.
+
+    KMS_PROVIDER=aws  → AWS KMS (Kanopy/production). Credentials auto-discovered
+                        via IRSA (pymongo-auth-aws handles STS AssumeRoleWithWebIdentity).
+    KMS_PROVIDER=local (default) → Local 96-byte master key file for dev.
+    """
+    provider = os.getenv("KMS_PROVIDER", "local")
+
+    if provider == "aws":
+        # pymongo-auth-aws auto-discovers credentials from:
+        # 1. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY env vars
+        # 2. IRSA (EKS service account token) — used on Kanopy
+        # 3. EC2 instance metadata
+        return {"aws": {}}
+
+    # Local fallback for development
+    master_key_path = os.getenv(
+        "LOCAL_MASTER_KEY_PATH",
+        str(Path(__file__).resolve().parent.parent / "master-key.bin"),
+    )
+    master_key = Path(master_key_path).read_bytes()
+    return {"local": {"key": master_key}}
+
+
 def create_encrypted_connection(uri: str, config: dict) -> EncryptedMongoDBConnection:
     """Create an EncryptedMongoDBConnection from URI and encryption config.
 
@@ -60,13 +86,7 @@ def create_encrypted_connection(uri: str, config: dict) -> EncryptedMongoDBConne
     Returns:
         EncryptedMongoDBConnection ready for use.
     """
-    # Load master key
-    master_key_path = os.getenv(
-        "LOCAL_MASTER_KEY_PATH",
-        str(Path(__file__).resolve().parent.parent / "master-key.bin"),
-    )
-    master_key = Path(master_key_path).read_bytes()
-    kms_providers = {"local": {"key": master_key}}
+    kms_providers = _build_kms_providers()
 
     # crypt_shared lib path — configurable for Docker (Linux uses .so)
     crypt_shared_lib_path = os.getenv(
@@ -79,6 +99,7 @@ def create_encrypted_connection(uri: str, config: dict) -> EncryptedMongoDBConne
         config["key_vault_namespace"],
         encrypted_fields_map=config["encrypted_fields_map"],
         crypt_shared_lib_path=crypt_shared_lib_path,
+        crypt_shared_lib_required=True,
     )
 
     return EncryptedMongoDBConnection(uri, auto_opts)

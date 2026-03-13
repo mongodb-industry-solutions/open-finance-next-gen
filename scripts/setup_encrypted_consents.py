@@ -5,6 +5,10 @@ Creates the `encrypted_consents` collection in the OPENFINANCE_DB_NAME database,
 generates data encryption keys (DEKs) for each encrypted field, creates indexes,
 and saves the resulting encrypted_fields_map to encryption_config.json for runtime use.
 
+Supports two KMS providers:
+  KMS_PROVIDER=local (default) — uses master-key.bin for dev
+  KMS_PROVIDER=aws             — uses AWS KMS (requires AWS_KMS_KEY_ARN)
+
 Usage:
     cd backend && poetry run python ../scripts/setup_encrypted_consents.py
 """
@@ -67,6 +71,11 @@ ENCRYPTED_FIELDS = {
 }
 
 
+KMS_PROVIDER = os.getenv("KMS_PROVIDER", "local")
+AWS_KMS_KEY_ARN = os.getenv("AWS_KMS_KEY_ARN")
+AWS_KMS_REGION = os.getenv("AWS_KMS_REGION", "us-east-1")
+
+
 def load_master_key() -> bytes:
     """Load the existing master key from file."""
     if not MASTER_KEY_PATH.exists():
@@ -81,14 +90,38 @@ def load_master_key() -> bytes:
     return key
 
 
+def build_kms_config() -> tuple[dict, str, dict | None]:
+    """Build KMS providers, provider name, and master_key arg.
+
+    For aws: credentials auto-discovered from AWS SSO (local) or IRSA (Kanopy).
+             Requires AWS_KMS_KEY_ARN env var.
+    For local: reads master-key.bin from disk.
+
+    Returns:
+        (kms_providers, kms_provider_name, master_key_arg)
+        master_key_arg is None for local, dict for aws.
+    """
+    if KMS_PROVIDER == "aws":
+        if not AWS_KMS_KEY_ARN:
+            print("ERROR: KMS_PROVIDER=aws but AWS_KMS_KEY_ARN not set")
+            sys.exit(1)
+        print(f"Using AWS KMS: {AWS_KMS_KEY_ARN}")
+        kms_providers = {"aws": {}}
+        master_key_arg = {"key": AWS_KMS_KEY_ARN, "region": AWS_KMS_REGION}
+        return kms_providers, "aws", master_key_arg
+
+    master_key = load_master_key()
+    return {"local": {"key": master_key}}, "local", None
+
+
 def main():
     print("=" * 60)
     print("Setup: Encrypted Consents Collection")
+    print(f"KMS Provider: {KMS_PROVIDER}")
     print("=" * 60)
 
-    # Step 1: Load master key
-    master_key = load_master_key()
-    kms_providers = {"local": {"key": master_key}}
+    # Step 1: Build KMS config
+    kms_providers, kms_provider_name, master_key_arg = build_kms_config()
 
     # Step 2: Key vault setup
     key_vault_client = MongoClient(MONGODB_URI)
@@ -100,6 +133,17 @@ def main():
         partialFilterExpression={"keyAltNames": {"$exists": True}},
     )
     print(f"Key vault ready: {KEY_VAULT_NAMESPACE}")
+
+    # Step 2b: Clean existing DEKs from key vault (idempotent re-runs)
+    # Only delete DEKs created by this app's KMS provider — safe for shared clusters
+    dek_filter = {"masterKey.provider": {"$in": ["local", KMS_PROVIDER]}}
+    existing_dek_count = key_vault.count_documents(dek_filter)
+    if existing_dek_count > 0:
+        print(f"Cleaning {existing_dek_count} existing DEK(s) from key vault (provider: local or {KMS_PROVIDER})...")
+        key_vault.delete_many(dek_filter)
+        print("Key vault cleaned.")
+    else:
+        print("Key vault is empty — no cleanup needed.")
 
     # Step 3: Create encrypted collection
     client_encryption = ClientEncryption(
@@ -118,8 +162,11 @@ def main():
         db.drop_collection(COLL_NAME)
 
     print(f"\nCreating encrypted collection: {DB_NAME}.{COLL_NAME}")
+    create_kwargs = {"kms_provider": kms_provider_name}
+    if master_key_arg:
+        create_kwargs["master_key"] = master_key_arg
     _, ef_map = client_encryption.create_encrypted_collection(
-        db, COLL_NAME, ENCRYPTED_FIELDS, kms_provider="local"
+        db, COLL_NAME, ENCRYPTED_FIELDS, **create_kwargs
     )
     print("Encrypted collection created with auto-generated data keys.")
 

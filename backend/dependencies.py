@@ -34,10 +34,13 @@ def get_encrypted_mongo_connection() -> MongoDBConnection:
     """Singleton encrypted MongoClient for Queryable Encryption on consents."""
     global _encrypted_mongo_connection
     if _encrypted_mongo_connection is None:
-        config_path = os.path.join(os.path.dirname(__file__), "encryption_config.json")
+        config_path = os.getenv(
+            "ENCRYPTION_CONFIG_PATH",
+            os.path.join(os.path.dirname(__file__), "encryption_config.json"),
+        )
         if not os.path.exists(config_path):
             raise RuntimeError(
-                "encryption_config.json not found. "
+                f"encryption_config.json not found at {config_path}. "
                 "Run: cd backend && poetry run python ../scripts/setup_encrypted_consents.py"
             )
         config = load_encryption_config(config_path)

@@ -1,8 +1,23 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bookworm
 
 ENV GET_POETRY_IGNORE_DEPRECATION=1
 
 WORKDIR /
+
+# Install curl for downloading crypt_shared
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download MongoDB crypt_shared library (Linux x86_64, Debian 12)
+# Must match your Atlas server major version (8.0.x for MongoDB 8.x)
+ARG CRYPT_SHARED_VERSION=8.0.19
+RUN curl -fSL "https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-debian12-${CRYPT_SHARED_VERSION}.tgz" \
+    -o /tmp/crypt_shared.tgz \
+    && mkdir -p /opt/mongo_crypt \
+    && tar -xzf /tmp/crypt_shared.tgz --strip-components=1 -C /opt/mongo_crypt \
+    && rm /tmp/crypt_shared.tgz
+
+ENV CRYPT_SHARED_LIB_PATH=/opt/mongo_crypt/lib/mongo_crypt_v1.so
 
 # Poetry dependencies
 COPY /backend/pyproject.toml /backend/poetry.lock ./
