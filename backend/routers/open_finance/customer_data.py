@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
 from services.auth import Auth
 from services.open_finance.customer_data_service import CustomerDataService
 from encoder.json_encoder import MyJSONEncoder
@@ -22,23 +22,23 @@ logging.basicConfig(level=logging.INFO,
 
 router = APIRouter()
 
-# Initialize the MongoDB connection
-connection = get_mongo_connection()
+# Initialize the encrypted MongoDB connection (Queryable Encryption on consents)
+encrypted_connection = get_encrypted_mongo_connection()
 
 # Get the database name from the environment variable
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 
 # Collection names
-CONSENTS_COLLECTION = "consents"
+CONSENTS_COLLECTION = "encrypted_consents"
 EXTERNAL_ACCOUNTS_COLLECTION = "external_accounts"
 EXTERNAL_PRODUCTS_COLLECTION = "external_products"
 EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions_test"  # TODO: revert to "external_transactions" when ISO 20022 migration is complete
 EXTERNAL_REPAYMENT_HISTORY_COLLECTION = "external_repayment_history"
 EXTERNAL_CUSTOMER_IDENTIFICATION_COLLECTION = "external_customer_identification"
 
-# Initialize the CustomerDataService
+# Initialize the CustomerDataService with encrypted connection
 customer_data_service = CustomerDataService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
     CONSENTS_COLLECTION,
     EXTERNAL_ACCOUNTS_COLLECTION,

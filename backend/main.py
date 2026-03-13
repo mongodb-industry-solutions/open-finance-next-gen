@@ -22,6 +22,7 @@ from routers.leafy_bank.portability import secure as lb_portability_secure
 from routers.leafy_bank.mcc import secure as lb_mcc_secure
 from routers import debug as debug_router
 from routers import demo as demo_router
+from routers import encryption_demo as encryption_demo_router
 
 # Logging
 logging.basicConfig(
@@ -195,6 +196,13 @@ app.include_router(
     demo_router.router,
     prefix="/api/v1/demo",
     tags=["Demo"]
+)
+
+# Encryption demo router (Queryable Encryption comparison)
+app.include_router(
+    encryption_demo_router.router,
+    prefix="/api/v1/encryption-demo",
+    tags=["Encryption Demo"]
 )
 
 # Debug router (for development/debugging)

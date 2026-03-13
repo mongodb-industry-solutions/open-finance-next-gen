@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException, Response, Query
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from dependencies import get_auth, get_bearer_token
+from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from bson import ObjectId
@@ -66,9 +66,10 @@ account_aggr_service = AccountAggregations(connection, db1_name=leafy_bank_db_na
 product_aggr_service = ProductAggregations(connection, db_name=open_finance_db_name,
                                            collection_name=external_products_collection_name)
 
-# Initialize the ConsentValidator for consent-gated endpoints
-consents_collection_name = "consents"
-consent_validator = ConsentValidator(connection, db_name=open_finance_db_name,
+# Initialize the ConsentValidator with encrypted connection (Queryable Encryption)
+encrypted_connection = get_encrypted_mongo_connection()
+consents_collection_name = "encrypted_consents"
+consent_validator = ConsentValidator(encrypted_connection, db_name=open_finance_db_name,
                                      consents_collection_name=consents_collection_name)
 
 limiter = Limiter(key_func=get_remote_address)

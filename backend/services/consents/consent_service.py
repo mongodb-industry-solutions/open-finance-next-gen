@@ -68,13 +68,10 @@ class ConsentService:
         try:
             # Unique index on ConsentId
             self.consents_collection.create_index("ConsentId", unique=True)
-            # Index for querying by user
-            self.consents_collection.create_index("Consumer.UserName")
-            # TTL index for auto-expiry (documents expire at ExpirationDateTime)
-            self.consents_collection.create_index(
-                "ExpirationDateTime",
-                expireAfterSeconds=0
-            )
+            # NOTE: Consumer.UserName index removed — field is encrypted via
+            # Queryable Encryption. Equality queries work via QE's internal metadata.
+            # NOTE: TTL index removed — not allowed on QE-encrypted collections.
+            # Consent expiration must be checked in application code.
             logging.info("Consent collection indexes ensured")
         except Exception as e:
             logging.warning(f"Index creation warning (may already exist): {e}")

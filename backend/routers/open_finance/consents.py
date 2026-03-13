@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
 from encoder.json_encoder import MyJSONEncoder
@@ -22,19 +22,19 @@ logging.basicConfig(level=logging.INFO,
 
 router = APIRouter()
 
-# Initialize the MongoDB connection
-connection = get_mongo_connection()
+# Initialize the encrypted MongoDB connection (Queryable Encryption on consents)
+encrypted_connection = get_encrypted_mongo_connection()
 
 # Get the database name from the environment variable
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 
 # Collection names
-CONSENTS_COLLECTION = "consents"
+CONSENTS_COLLECTION = "encrypted_consents"
 INSTITUTIONS_COLLECTION = "institutions"
 
-# Initialize the ConsentService
+# Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
     CONSENTS_COLLECTION,
     INSTITUTIONS_COLLECTION
