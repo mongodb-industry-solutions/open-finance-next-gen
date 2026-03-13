@@ -227,6 +227,16 @@ class ConsentService:
 
         return consent_document
 
+    @staticmethod
+    def _strip_qe_metadata(doc: dict) -> dict:
+        """Remove Queryable Encryption internal fields from a document.
+
+        QE adds __safeContent__ (Binary array) to documents for internal
+        indexing. This metadata is not serializable and not useful to API consumers.
+        """
+        doc.pop("__safeContent__", None)
+        return doc
+
     def get_consent(self, consent_id: str) -> Optional[dict]:
         """Retrieve a consent by its ConsentId.
 
@@ -239,6 +249,7 @@ class ConsentService:
         consent = self.consents_collection.find_one({"ConsentId": consent_id})
         if consent:
             logging.info(f"Consent found: {consent_id}")
+            return self._strip_qe_metadata(consent)
         else:
             logging.info(f"Consent not found: {consent_id}")
         return consent
@@ -254,7 +265,7 @@ class ConsentService:
         """
         consents = list(self.consents_collection.find({"Consumer.UserName": user_name}))
         logging.info(f"Found {len(consents)} consents for user {user_name}")
-        return consents
+        return [self._strip_qe_metadata(c) for c in consents]
 
     def update_status(
         self,

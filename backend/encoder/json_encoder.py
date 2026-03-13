@@ -15,4 +15,6 @@ class MyJSONEncoder(json.JSONEncoder):
             return str(o)  # Convert ObjectId to string
         if isinstance(o, datetime):
             return o.isoformat()  # Convert datetime to ISO 8601 string
+        if isinstance(o, bytes):
+            return f"Binary({len(o)} bytes)"  # Safety net for QE metadata
         return super().default(o)
