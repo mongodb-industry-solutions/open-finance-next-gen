@@ -187,3 +187,4 @@ notes.md
 security_check.sh
 backend/master-key.bin
 backend/encryption_config.json
+setup-hooks.sh
