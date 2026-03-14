@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_mongo_connection, get_encrypted_mongo_connection
 from services.auth import Auth
 from services.open_finance.customer_identification_service import CustomerIdentificationService
 from services.open_finance.repayment_history_service import RepaymentHistoryService
@@ -23,25 +23,29 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize the MongoDB connection
+# Initialize the MongoDB connections
 connection = get_mongo_connection()
+encrypted_connection = get_encrypted_mongo_connection()
 
 # Database names
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
 
-# Initialize services
+# Collection names
+ENCRYPTED_CONSENTS_COLLECTION = "encrypted_consents"
+
+# Initialize services (use encrypted connection for consent-gated services)
 customer_identification_service = CustomerIdentificationService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
-    "consents",
+    ENCRYPTED_CONSENTS_COLLECTION,
     "external_customer_identification"
 )
 
 repayment_history_service = RepaymentHistoryService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
-    "consents",
+    ENCRYPTED_CONSENTS_COLLECTION,
     "external_repayment_history"
 )
 
