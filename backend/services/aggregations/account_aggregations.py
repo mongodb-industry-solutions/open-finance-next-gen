@@ -1,11 +1,9 @@
+import logging
 from database.connection import MongoDBConnection
 from bson import ObjectId
 from typing import List, Optional
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 class AccountAggregations:
@@ -27,11 +25,11 @@ class AccountAggregations:
             {'$match': {'AccountUser.UserId': user_id}},  # Match only by user_id
             {'$group': {'_id': None, 'TotalBalance': {'$sum': '$AccountBalance'}}}
         ]
-        logging.info(f"Aggregating internal accounts for user: {user_id}")
+        logger.info(f"Aggregating internal accounts for user: {user_id}")
         result_aggregate = list(self.accounts_collection.aggregate(pipeline))
 
         total_balance = result_aggregate[0]['TotalBalance'] if result_aggregate else 0
-        logging.info(f"Total Internal Balance: {total_balance}")
+        logger.info(f"Total Internal Balance: {total_balance}")
         return total_balance  # Return the total internal balance
 
     def _aggregate_external_account_balances(self, user_id: ObjectId, connected_external_accounts: Optional[List[str]]) -> float:
@@ -50,14 +48,14 @@ class AccountAggregations:
             {'$match': match_stage},
             {'$group': {'_id': None, 'TotalBalance': {'$sum': '$AccountBalance'}}}
         ]
-        logging.info(
+        logger.info(
             f"Aggregating external accounts for user: {user_id} with connected accounts: {connected_external_accounts}"
         )
         result_aggregate = list(
             self.external_accounts_collection.aggregate(pipeline))
 
         total_balance = result_aggregate[0]['TotalBalance'] if result_aggregate else 0
-        logging.info(f"Total External Balance: {total_balance}")
+        logger.info(f"Total External Balance: {total_balance}")
         return total_balance  # Return the total external balance
 
     def get_user_account_balances(self, user_id: str, connected_external_accounts: Optional[List[str]] = None) -> dict:
@@ -78,7 +76,7 @@ class AccountAggregations:
         # Step 3: Compute total balance (internal + external)
         total_balance = internal_total_balance + external_total_balance
 
-        logging.info(f"Final Total Aggregated Balance: {total_balance}")
+        logger.info(f"Final Total Aggregated Balance: {total_balance}")
 
         return {
             "total_balance": total_balance,

@@ -27,7 +27,7 @@ from routers import encryption_demo as encryption_demo_router
 # Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
 # Set up the Limiter

@@ -1,8 +1,7 @@
-from database.connection import MongoDBConnection
 import logging
+from database.connection import MongoDBConnection
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class CreditBureauService:
@@ -25,10 +24,10 @@ class CreditBureauService:
         })
 
         if record:
-            logging.info(f"Credit score found for user {user_identifier}: {record.get('Score')}")
+            logger.info(f"Credit score found for user {user_identifier}: {record.get('Score')}")
             return record
 
-        logging.info(f"No credit score found for user {user_identifier}")
+        logger.info(f"No credit score found for user {user_identifier}")
         return {
             "UserName": user_identifier,
             "Score": None,

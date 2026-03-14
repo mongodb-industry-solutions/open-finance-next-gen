@@ -1,13 +1,11 @@
+import logging
+import random
 from bson import ObjectId
 from typing import Union
 from database.connection import MongoDBConnection
 from datetime import datetime, timedelta, timezone
-import random
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ExternalAccounts:
@@ -86,7 +84,7 @@ class ExternalAccounts:
         result = self.external_accounts_collection.insert_one(account_data)
         account_id = result.inserted_id
 
-        logging.info(
+        logger.info(
             f"Retrieved external account {account_number} for user {user_name} at {account_bank}.")
         return account_id
 
@@ -126,7 +124,7 @@ class ExternalAccounts:
 
         external_accounts = list(self.external_accounts_collection.find(query))
         return external_accounts
-    
+
     def get_all_external_accounts_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
         """Retrieve all external accounts for a specific user.
         Args:

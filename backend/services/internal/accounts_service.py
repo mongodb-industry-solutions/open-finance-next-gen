@@ -1,13 +1,10 @@
+import logging
 from bson import ObjectId
 from typing import Union, Optional
 from database.connection import MongoDBConnection
 from datetime import datetime, timezone
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class AccountsService:
@@ -32,7 +29,7 @@ class AccountsService:
 
     def get_accounts(self) -> list[dict]:
         """Retrieve all accounts, optionally excluding a specific account.
-        
+
         Returns:
             list[dict]: A list of all accounts.
         """
@@ -41,7 +38,7 @@ class AccountsService:
 
     def get_active_accounts(self) -> list[dict]:
         """Retrieve all active accounts, optionally excluding a specific account.
-        
+
         Returns:
             list[dict]: A list of all active accounts.
         """
@@ -60,9 +57,9 @@ class AccountsService:
         account = self.accounts_collection.find_one(
             {"AccountNumber": account_number})
         if account:
-            logging.info(f"Account found with number {account_number}")
+            logger.info(f"Account found with number {account_number}")
         else:
-            logging.info(f"No account found with number {account_number}")
+            logger.info(f"No account found with number {account_number}")
         return account
 
     def get_active_account_by_number(self, account_number: str) -> Optional[dict]:
@@ -75,9 +72,9 @@ class AccountsService:
         account = self.accounts_collection.find_one(
             {"AccountNumber": account_number, "AccountStatus": "Active"})
         if account:
-            logging.info(f"Active account found with number {account_number}")
+            logger.info(f"Active account found with number {account_number}")
         else:
-            logging.info(
+            logger.info(
                 f"No active account found with number {account_number}")
         return account
 
@@ -103,7 +100,7 @@ class AccountsService:
         user = self.users_collection.find_one(
             {"_id": user_id_obj, "UserName": user_name})
         if not user:
-            logging.error(
+            logger.error(
                 f"User with ID {user_id} and username {user_name} not found.")
             raise ValueError("Invalid user ID or username.")
 
@@ -111,12 +108,12 @@ class AccountsService:
         try:
             account_balance = float(account_balance)
         except ValueError:
-            logging.error("Account balance must be a valid number.")
+            logger.error("Account balance must be a valid number.")
             raise ValueError("Account balance must be a valid number.")
 
         # Validate account balance is greater than or equal to 0
         if account_balance < 0:
-            logging.error(
+            logger.error(
                 "Account balance must be greater than or equal to 0.")
             raise ValueError(
                 "Account balance must be greater than or equal to 0.")
@@ -124,14 +121,14 @@ class AccountsService:
         # Validate account balance does not exceed the limit
         initial_balance_limit = float(1000000)
         if account_balance > initial_balance_limit:
-            logging.error(
+            logger.error(
                 f"Account balance exceeds the limit of {initial_balance_limit}.")
             raise ValueError(
                 f"Account balance exceeds the limit of {initial_balance_limit}.")
 
         # Simple check for duplicate account number
         if self.accounts_collection.find_one({"AccountNumber": account_number}):
-            logging.error(
+            logger.error(
                 f"Account with number {account_number} already exists.")
             raise ValueError("An account with this number already exists.")
 
@@ -215,10 +212,10 @@ class AccountsService:
         # Find the account by its ObjectId
         account = self.accounts_collection.find_one({"_id": account_oid})
         if not account:
-            logging.error(f"Account with ID {account_id} not found.")
+            logger.error(f"Account with ID {account_id} not found.")
             return False
         if account.get("AccountBalance", 0) != 0:
-            logging.error(
+            logger.error(
                 f"Account with ID {account_id} cannot be closed because it has a remaining balance.")
             return False
         # Update the account status to "Closed" and set the ClosingDate
@@ -232,9 +229,9 @@ class AccountsService:
             }
         )
         if result.modified_count > 0:
-            logging.info(f"Account with ID {account_id} successfully closed.")
+            logger.info(f"Account with ID {account_id} successfully closed.")
             return True
         else:
-            logging.error(
+            logger.error(
                 f"Failed to close the account with ID {account_id} due to an unexpected error.")
             return False

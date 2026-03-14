@@ -17,9 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -122,12 +120,12 @@ async def create_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error creating consent: {str(ve)}")
+        logger.error(f"Validation error creating consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error creating consent: {str(e)}")
+        logger.error(f"Error creating consent: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -154,7 +152,7 @@ async def list_consents(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error listing consents: {str(e)}")
+        logger.error(f"Error listing consents: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -184,7 +182,7 @@ async def get_consent(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error getting consent {consent_id}: {str(e)}")
+        logger.error(f"Error getting consent {consent_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -220,7 +218,7 @@ async def update_consent_status(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only modify your own consents."
@@ -242,12 +240,12 @@ async def update_consent_status(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error updating consent status: {str(ve)}")
+        logger.error(f"Validation error updating consent status: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error updating consent status {consent_id}: {str(e)}")
+        logger.error(f"Error updating consent status {consent_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -279,7 +277,7 @@ async def approve_consent(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only approve your own consents."
@@ -297,12 +295,12 @@ async def approve_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error approving consent: {str(ve)}")
+        logger.error(f"Validation error approving consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error approving consent {consent_id}: {str(e)}")
+        logger.error(f"Error approving consent {consent_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -334,7 +332,7 @@ async def revoke_consent(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only revoke your own consents."
@@ -352,10 +350,10 @@ async def revoke_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error revoking consent: {str(ve)}")
+        logger.error(f"Validation error revoking consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error revoking consent {consent_id}: {str(e)}")
+        logger.error(f"Error revoking consent {consent_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

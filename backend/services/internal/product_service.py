@@ -1,11 +1,8 @@
+import logging
 from typing import Optional, List
 from database.connection import MongoDBConnection
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ProductService:
@@ -39,7 +36,7 @@ class ProductService:
             query["ProductType"] = product_type
 
         products = list(self.products_collection.find(query))
-        logging.info(f"Retrieved {len(products)} products" + (f" of type {product_type}" if product_type else ""))
+        logger.info(f"Retrieved {len(products)} products" + (f" of type {product_type}" if product_type else ""))
         return products
 
     def get_product(self, product_id: str) -> Optional[dict]:
@@ -53,9 +50,9 @@ class ProductService:
         """
         product = self.products_collection.find_one({"ProductId": product_id})
         if product:
-            logging.info(f"Product found: {product_id}")
+            logger.info(f"Product found: {product_id}")
         else:
-            logging.info(f"Product not found: {product_id}")
+            logger.info(f"Product not found: {product_id}")
         return product
 
     def match_products(
@@ -121,7 +118,7 @@ class ProductService:
             product["rate_improvement"] = round(current_rate - product_rate, 2)
             product["rate_field"] = rate_field
 
-        logging.info(
+        logger.info(
             f"Found {len(products)} {product_type} products with better rates than {current_rate}%"
         )
 

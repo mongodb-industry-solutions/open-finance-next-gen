@@ -1,10 +1,9 @@
+import logging
 from datetime import datetime, timezone
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import can_retrieve_data
-import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ConsentValidator:
@@ -95,7 +94,7 @@ class ConsentValidator:
                 }}
             }
         )
-        logging.info(f"Consent {consent_id}: recorded data access for {resource}")
+        logger.info(f"Consent {consent_id}: recorded data access for {resource}")
 
     def consume_if_one_time(self, consent: dict) -> str:
         """Consume the consent if it's a ONE_TIME type.
@@ -119,7 +118,7 @@ class ConsentValidator:
                     }}
                 }
             )
-            logging.info(f"One-time consent {consent['ConsentId']} marked as CONSUMED")
+            logger.info(f"One-time consent {consent['ConsentId']} marked as CONSUMED")
             return "CONSUMED"
         return "AUTHORISED"
 
@@ -137,4 +136,4 @@ class ConsentValidator:
                 }}
             }
         )
-        logging.info(f"Consent {consent_id} marked as EXPIRED")
+        logger.info(f"Consent {consent_id} marked as EXPIRED")

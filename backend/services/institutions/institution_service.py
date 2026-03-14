@@ -1,11 +1,8 @@
+import logging
 from typing import Optional
 from database.connection import MongoDBConnection
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class InstitutionService:
@@ -31,7 +28,7 @@ class InstitutionService:
             list[dict]: A list of all institutions.
         """
         institutions = list(self.institutions_collection.find({}))
-        logging.info(f"Retrieved {len(institutions)} institutions")
+        logger.info(f"Retrieved {len(institutions)} institutions")
         return institutions
 
     def get_institution_by_name(self, institution_name: str) -> Optional[dict]:
@@ -47,9 +44,9 @@ class InstitutionService:
             {"InstitutionName": institution_name}
         )
         if institution:
-            logging.info(f"Institution found: {institution_name}")
+            logger.info(f"Institution found: {institution_name}")
         else:
-            logging.info(f"No institution found with name: {institution_name}")
+            logger.info(f"No institution found with name: {institution_name}")
         return institution
 
     def get_active_institutions(self) -> list[dict]:
@@ -60,7 +57,7 @@ class InstitutionService:
         """
         query = {"InstitutionStatus": "Active"}
         institutions = list(self.institutions_collection.find(query))
-        logging.info(f"Retrieved {len(institutions)} active institutions")
+        logger.info(f"Retrieved {len(institutions)} active institutions")
         return institutions
 
     def institution_exists(self, institution_name: str) -> bool:

@@ -10,9 +10,7 @@ from bson import ObjectId
 
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -40,20 +38,20 @@ async def get_authorization(
     query = {"UserName": user_identifier}
 
     # Provide additional logging for better debugging
-    logging.info(
+    logger.info(
         f"Trying to find user document by UserName: {user_identifier}")
 
     # If the user_identifier looks like an ObjectId, check both UserName and _id
     if ObjectId.is_valid(user_identifier):
         query = {"$or": [{"UserName": user_identifier},
                          {"_id": ObjectId(user_identifier)}]}
-        logging.info(
+        logger.info(
             f"User identifier is a valid ObjectId, querying by _id as well.")
 
     try:
         user_document = tokens_collection.find_one(query)
         if not user_document:
-            logging.warning(f"User identifier {user_identifier} not found.")
+            logger.warning(f"User identifier {user_identifier} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Prepare the response data
@@ -63,12 +61,12 @@ async def get_authorization(
             "BearerToken": user_document.get("BearerToken")
         }
 
-        logging.info(
+        logger.info(
             f"User document for {user_identifier} retrieved successfully.")
         return response_data
 
     except Exception as e:
-        logging.error(f"Error retrieving user document: {str(e)}")
+        logger.error(f"Error retrieving user document: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

@@ -17,9 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -66,11 +64,11 @@ async def fetch_recent_transactions_for_user(
         # Extract `user_identifier` from request and ensure it's not null
         user_identifier = user_data.user_identifier
         if not user_identifier:
-            logging.error("Missing user identifier in request.")
+            logger.error("Missing user identifier in request.")
             raise HTTPException(
                 status_code=400, detail="User identifier is required.")
 
-        logging.info(f"Fetching recent transactions for user: {user_identifier}")
+        logger.info(f"Fetching recent transactions for user: {user_identifier}")
 
         # If `user_identifier` is an ObjectId-like string, convert it to ObjectId
         if ObjectId.is_valid(user_identifier):
@@ -78,7 +76,7 @@ async def fetch_recent_transactions_for_user(
 
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logging.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {user_identifier} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Retrieve recent transactions for the valid user
@@ -86,10 +84,10 @@ async def fetch_recent_transactions_for_user(
             user_identifier)
 
         if transactions:
-            logging.info(
+            logger.info(
                 f"Found {len(transactions)} recent transactions for user {user_identifier}.")
         else:
-            logging.info(
+            logger.info(
                 f"No recent transactions found for user {user_identifier}.")
 
         return Response(
@@ -101,7 +99,7 @@ async def fetch_recent_transactions_for_user(
     except HTTPException as he:
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
-        logging.error(
+        logger.error(
             f"Error retrieving recent transactions for user: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -134,7 +132,7 @@ async def get_spending_transactions(
     try:
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logging.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {user_identifier} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         transactions = transactions_service.get_all_transactions_for_user(user_identifier)
@@ -150,6 +148,6 @@ async def get_spending_transactions(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(
+        logger.error(
             f"Error retrieving spending transactions for user {user_identifier}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

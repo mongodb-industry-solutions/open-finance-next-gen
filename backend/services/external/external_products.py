@@ -1,13 +1,11 @@
+import logging
+import random
 from bson import ObjectId
 from typing import Union
 from database.connection import MongoDBConnection
 from datetime import datetime, timedelta, timezone
-import random
-import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class ExternalFinancialProducts:
@@ -80,7 +78,7 @@ class ExternalFinancialProducts:
         result = self.external_products_collection.insert_one(product_data)
         product_id = result.inserted_id
 
-        logging.info(
+        logger.info(
             f"Retrieved external product {product_id} for user {user_name} at {product_bank}.")
         return product_id
 
@@ -129,7 +127,7 @@ class ExternalFinancialProducts:
 
         external_products = list(self.external_products_collection.find(query))
         return external_products
-    
+
     def get_all_external_products_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
         """Retrieve all external financial products for a specific user.
 

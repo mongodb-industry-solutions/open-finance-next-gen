@@ -3,12 +3,11 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 from database.connection import MongoDBConnection
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 class Auth:
-    """ Handles Bearer token authentication. 
+    """ Handles Bearer token authentication.
 
     Args:
         connection (MongoDBConnection): MongoDB connection object.
@@ -21,13 +20,13 @@ class Auth:
 
     def bearer_token_validation(self, bearer_token: str) -> dict:
         if not bearer_token:
-            logging.error("Bearer token is missing.")
+            logger.error("Bearer token is missing.")
             raise HTTPException(
                 status_code=400, detail="Bearer token is missing.")
         # Search for the token in the database
         user = self.tokens_collection.find_one({"BearerToken": bearer_token})
         if not user:
-            logging.error("Invalid bearer token.")
+            logger.error("Invalid bearer token.")
             raise HTTPException(
                 status_code=403, detail="Invalid bearer token.")
         # Update the LastUseDate for the token
@@ -35,6 +34,6 @@ class Auth:
             {"BearerToken": bearer_token},
             {"$set": {"TokenDates.LastUseDate": datetime.now(timezone.utc)}}
         )
-        logging.info(
+        logger.info(
             f"Bearer token validated for user: {user['UserName']} | Bearer token: {bearer_token}")
         return user

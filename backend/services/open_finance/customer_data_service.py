@@ -1,13 +1,10 @@
+import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import can_retrieve_data
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class CustomerDataService:
@@ -129,7 +126,7 @@ class CustomerDataService:
         if not source_institution:
             raise ValueError("Consent is missing source institution information.")
 
-        logging.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose or 'GENERAL_ACCESS'}")
+        logger.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose or 'GENERAL_ACCESS'}")
 
         # Step 6: Query data based on purpose, gated by consent permissions
         result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions, profile)
@@ -188,7 +185,7 @@ class CustomerDataService:
                     "ProductType": "Loan"
                 }))
                 result["products"] = products
-                logging.info(f"{purpose}: Retrieved {len(products)} loan products")
+                logger.info(f"{purpose}: Retrieved {len(products)} loan products")
 
             if "ACCOUNTS_READ" in permissions:
                 accounts = list(self.external_accounts_collection.find({
@@ -196,13 +193,13 @@ class CustomerDataService:
                     "AccountBank": institution_name
                 }))
                 result["accounts"] = accounts
-                logging.info(f"{purpose}: Retrieved {len(accounts)} accounts")
+                logger.info(f"{purpose}: Retrieved {len(accounts)} accounts")
 
             if "TRANSACTIONS_READ" in permissions:
                 txn_query = self._build_transaction_query(user_name, institution_name, profile)
                 transactions = list(self.external_transactions_collection.find(txn_query))
                 result["transactions"] = transactions
-                logging.info(f"{purpose}: Retrieved {len(transactions)} transactions")
+                logger.info(f"{purpose}: Retrieved {len(transactions)} transactions")
 
             if "REPAYMENT_HISTORY_READ" in permissions:
                 repayment_history = list(self.external_repayment_history_collection.find({
@@ -210,7 +207,7 @@ class CustomerDataService:
                     "ProductBank": institution_name
                 }))
                 result["repayment_history"] = repayment_history
-                logging.info(f"{purpose}: Retrieved {len(repayment_history)} repayment records")
+                logger.info(f"{purpose}: Retrieved {len(repayment_history)} repayment records")
 
             if "CUSTOMER_IDENTIFICATION_READ" in permissions:
                 customer_identification = list(self.external_customer_identification_collection.find({
@@ -218,7 +215,7 @@ class CustomerDataService:
                     "CustomerBank": institution_name
                 }))
                 result["customer_identification"] = customer_identification
-                logging.info(f"{purpose}: Retrieved {len(customer_identification)} customer identification records")
+                logger.info(f"{purpose}: Retrieved {len(customer_identification)} customer identification records")
 
         elif purpose == "FINANCIAL_ADVICE":
             # Financial advice: transactions and accounts only
@@ -226,7 +223,7 @@ class CustomerDataService:
                 txn_query = self._build_transaction_query(user_name, institution_name, profile)
                 transactions = list(self.external_transactions_collection.find(txn_query))
                 result["transactions"] = transactions
-                logging.info(f"FINANCIAL_ADVICE: Retrieved {len(transactions)} transactions")
+                logger.info(f"FINANCIAL_ADVICE: Retrieved {len(transactions)} transactions")
 
             if "ACCOUNTS_READ" in permissions:
                 accounts = list(self.external_accounts_collection.find({
@@ -234,7 +231,7 @@ class CustomerDataService:
                     "AccountBank": institution_name
                 }))
                 result["accounts"] = accounts
-                logging.info(f"FINANCIAL_ADVICE: Retrieved {len(accounts)} accounts")
+                logger.info(f"FINANCIAL_ADVICE: Retrieved {len(accounts)} accounts")
 
         elif purpose is None:
             # General access consent — query all data sources based on permissions
@@ -244,7 +241,7 @@ class CustomerDataService:
                     "AccountBank": institution_name
                 }))
                 result["accounts"] = accounts
-                logging.info(f"GENERAL_ACCESS: Retrieved {len(accounts)} accounts")
+                logger.info(f"GENERAL_ACCESS: Retrieved {len(accounts)} accounts")
 
             if "LOANS_READ" in permissions:
                 products = list(self.external_products_collection.find({
@@ -252,17 +249,17 @@ class CustomerDataService:
                     "ProductBank": institution_name
                 }))
                 result["products"] = products
-                logging.info(f"GENERAL_ACCESS: Retrieved {len(products)} products")
+                logger.info(f"GENERAL_ACCESS: Retrieved {len(products)} products")
 
             if "TRANSACTIONS_READ" in permissions:
                 txn_query = self._build_transaction_query(user_name, institution_name, profile)
                 transactions = list(self.external_transactions_collection.find(txn_query))
                 result["transactions"] = transactions
-                logging.info(f"GENERAL_ACCESS: Retrieved {len(transactions)} transactions")
+                logger.info(f"GENERAL_ACCESS: Retrieved {len(transactions)} transactions")
 
             if "ACCOUNTS_BALANCES_READ" in permissions:
                 # Balance data comes from accounts — already retrieved above
-                logging.info("GENERAL_ACCESS: ACCOUNTS_BALANCES_READ granted (balances included in accounts)")
+                logger.info("GENERAL_ACCESS: ACCOUNTS_BALANCES_READ granted (balances included in accounts)")
 
             if "REPAYMENT_HISTORY_READ" in permissions:
                 repayment_history = list(self.external_repayment_history_collection.find({
@@ -270,7 +267,7 @@ class CustomerDataService:
                     "ProductBank": institution_name
                 }))
                 result["repayment_history"] = repayment_history
-                logging.info(f"GENERAL_ACCESS: Retrieved {len(repayment_history)} repayment records")
+                logger.info(f"GENERAL_ACCESS: Retrieved {len(repayment_history)} repayment records")
 
             if "CUSTOMER_IDENTIFICATION_READ" in permissions:
                 customer_identification = list(self.external_customer_identification_collection.find({
@@ -278,10 +275,10 @@ class CustomerDataService:
                     "CustomerBank": institution_name
                 }))
                 result["customer_identification"] = customer_identification
-                logging.info(f"GENERAL_ACCESS: Retrieved {len(customer_identification)} customer identification records")
+                logger.info(f"GENERAL_ACCESS: Retrieved {len(customer_identification)} customer identification records")
 
         else:
-            logging.warning(f"Unknown purpose: {purpose}")
+            logger.warning(f"Unknown purpose: {purpose}")
 
         return result
 
@@ -344,11 +341,11 @@ class CustomerDataService:
 
         purpose = consent.get("Purpose")
 
-        logging.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
+        logger.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
 
         txn_query = self._build_transaction_query(user_name, source_institution, profile)
         transactions = list(self.external_transactions_collection.find(txn_query))
-        logging.info(f"Retrieved {len(transactions)} external transactions")
+        logger.info(f"Retrieved {len(transactions)} external transactions")
 
         # Step 7: Record data access for audit
         self._record_data_access(consent_id, "EXTERNAL_TRANSACTIONS")
@@ -384,7 +381,7 @@ class CustomerDataService:
                 }
             }
         )
-        logging.info(f"One-time consent {consent_id} marked as CONSUMED")
+        logger.info(f"One-time consent {consent_id} marked as CONSUMED")
 
     def _expire_consent(self, consent_id: str) -> None:
         """Mark a consent as expired when ExpirationDateTime has passed.
@@ -410,7 +407,7 @@ class CustomerDataService:
                 }
             }
         )
-        logging.info(f"Consent {consent_id} marked as EXPIRED")
+        logger.info(f"Consent {consent_id} marked as EXPIRED")
 
     def _record_data_access(self, consent_id: str, resource: str) -> None:
         """Record a data access event in the consent's StatusHistory.
@@ -431,4 +428,4 @@ class CustomerDataService:
                 }}
             }
         )
-        logging.info(f"Consent {consent_id}: recorded data access for {resource}")
+        logger.info(f"Consent {consent_id}: recorded data access for {resource}")

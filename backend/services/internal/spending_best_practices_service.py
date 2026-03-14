@@ -1,9 +1,8 @@
+import logging
 from typing import List
 from database.connection import MongoDBConnection
-import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class SpendingBestPracticesService:
@@ -19,5 +18,5 @@ class SpendingBestPracticesService:
             List[dict]: All 9 spending categories with ideal %, min/max ranges, MCC codes.
         """
         categories = list(self.spending_collection.find({}))
-        logging.info(f"Retrieved {len(categories)} spending best practice categories")
+        logger.info(f"Retrieved {len(categories)} spending best practice categories")
         return categories

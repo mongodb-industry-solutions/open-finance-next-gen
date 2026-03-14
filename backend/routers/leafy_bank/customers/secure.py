@@ -19,9 +19,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -103,12 +101,12 @@ async def get_customer_identification(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error retrieving customer identification: {str(ve)}")
+        logger.error(f"Validation error retrieving customer identification: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving customer identification: {str(e)}")
+        logger.error(f"Error retrieving customer identification: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -158,12 +156,12 @@ async def get_repayment_history(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error retrieving repayment history: {str(ve)}")
+        logger.error(f"Validation error retrieving repayment history: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving repayment history: {str(e)}")
+        logger.error(f"Error retrieving repayment history: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -198,5 +196,5 @@ async def get_credit_score(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving credit score for {user_identifier}: {str(e)}")
+        logger.error(f"Error retrieving credit score for {user_identifier}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

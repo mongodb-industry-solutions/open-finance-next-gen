@@ -17,9 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -59,7 +57,7 @@ class FindUserResponse(BaseModel):
 # @router.get("/fetch-users", response_model=FetchUsersResponse)
 # @limiter.limit("60/minute")
 # async def fetch_users(
-#     request: Request, 
+#     request: Request,
 #     bearer_token: str = Depends(get_bearer_token),
 #     auth: Auth = Depends(get_auth)
 # ):
@@ -99,7 +97,7 @@ async def find_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logging.info(f"Finding user: {user_identifier}")
+        logger.info(f"Finding user: {user_identifier}")
 
         # Convert string-based ObjectId to a valid ObjectId, if applicable
         if ObjectId.is_valid(user_identifier):
@@ -107,12 +105,12 @@ async def find_user(
 
         user = users_service.get_user(user_identifier)
         if not user:
-            logging.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {user_identifier} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         return Response(content=json.dumps({"user": user}, cls=MyJSONEncoder), media_type="application/json")
     except HTTPException as he:
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
-        logging.error(f"Error finding user: {str(e)}")
+        logger.error(f"Error finding user: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

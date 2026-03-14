@@ -16,9 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -120,12 +118,12 @@ async def retrieve_external_data(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error retrieving external data: {str(ve)}")
+        logger.error(f"Validation error retrieving external data: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving external data: {str(e)}")
+        logger.error(f"Error retrieving external data: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -172,13 +170,13 @@ async def retrieve_external_transactions(
         )
 
     except PermissionError as pe:
-        logging.error(f"Permission error retrieving external transactions: {str(pe)}")
+        logger.error(f"Permission error retrieving external transactions: {str(pe)}")
         raise HTTPException(status_code=403, detail=str(pe))
     except ValueError as ve:
-        logging.error(f"Validation error retrieving external transactions: {str(ve)}")
+        logger.error(f"Validation error retrieving external transactions: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving external transactions: {str(e)}")
+        logger.error(f"Error retrieving external transactions: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

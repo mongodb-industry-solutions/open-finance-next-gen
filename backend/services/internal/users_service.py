@@ -1,12 +1,9 @@
+import logging
 from bson import ObjectId
 from typing import Union
 from database.connection import MongoDBConnection
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class UsersService:
@@ -33,7 +30,7 @@ class UsersService:
             list[dict]: A list of all users in the collection.
         """
         # Retrieve all users from the collection
-        logging.info(f"Retrieving all users from the collection...")
+        logger.info(f"Retrieving all users from the collection...")
         users = list(self.users_collection.find())
         return users
 
@@ -52,8 +49,8 @@ class UsersService:
         # Retrieve the user matching the query
         user = self.users_collection.find_one(query)
         if user:
-            logging.info(f"Returning user with ObjectId {user['_id']}")
+            logger.info(f"Returning user with ObjectId {user['_id']}")
             return user
         else:
-            logging.error("No user found with the given identifier.")
+            logger.error("No user found with the given identifier.")
             return None

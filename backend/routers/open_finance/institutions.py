@@ -16,9 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -74,7 +72,7 @@ async def list_institutions(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error listing institutions: {str(e)}")
+        logger.error(f"Error listing institutions: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -96,7 +94,7 @@ async def get_institution(
         institution = institution_service.get_institution_by_name(institution_name)
 
         if not institution:
-            logging.error(f"Institution not found: {institution_name}")
+            logger.error(f"Institution not found: {institution_name}")
             raise HTTPException(
                 status_code=404,
                 detail=f"Institution '{institution_name}' not found."
@@ -110,5 +108,5 @@ async def get_institution(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error getting institution {institution_name}: {str(e)}")
+        logger.error(f"Error getting institution {institution_name}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -1,9 +1,8 @@
+import logging
 from typing import List
 from database.connection import MongoDBConnection
-import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class PortabilityRulesService:
@@ -19,5 +18,5 @@ class PortabilityRulesService:
             List[dict]: All rules with LoanSubTypes, amount ranges, paths, and tiers.
         """
         rules = list(self.rules_collection.find({}))
-        logging.info(f"Retrieved {len(rules)} portability underwriting rules")
+        logger.info(f"Retrieved {len(rules)} portability underwriting rules")
         return rules
