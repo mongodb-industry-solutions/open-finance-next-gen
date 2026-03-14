@@ -114,6 +114,11 @@ backend/*.sublime-workspace
 backend/.DS_Store
 backend/Thumbs.db
 
+# Encryption keys and config (local dev only - production uses AWS KMS + ConfigMap)
+backend/master-key.bin
+backend/encryption_config.json
+backend/*.bin
+
 #-------------------------------------------------------- Frontend --------------------------------------------------------
 # Node modules
 frontend/node_modules/

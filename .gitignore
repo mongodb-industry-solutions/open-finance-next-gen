@@ -2,6 +2,7 @@
 knowledge_base_kanopy/
 scripts/
 .claude/
+.augment/
 _state.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
