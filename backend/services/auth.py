@@ -35,5 +35,5 @@ class Auth:
             {"$set": {"TokenDates.LastUseDate": datetime.now(timezone.utc)}}
         )
         logger.info(
-            f"Bearer token validated for user: {user['UserName']} | Bearer token: {bearer_token}")
+            f"Bearer token validated for user: {user['UserName']} | Bearer token: ...{bearer_token[-4:]}")
         return user

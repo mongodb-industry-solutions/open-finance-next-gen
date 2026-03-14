@@ -81,12 +81,13 @@ class MessageResponse(BaseModel):
 @limiter.limit("30/minute")
 async def create_consent(
     request: Request,
-    consent_data: CreateConsentRequest
+    consent_data: CreateConsentRequest,
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    Create a new consent for data sharing.
+    Create a new consent for data sharing. Requires bearer token authentication.
 
-    This is a Leafy Bank endpoint - user is already authenticated via session.
     The source_institution_name must be a valid institution in the system.
     Valid purposes: PERSONAL_LOAN_PORTABILITY, PAYROLL_LOAN_PORTABILITY, VEHICLE_LOAN_PORTABILITY, FINANCIAL_ADVICE
     Or omit purpose (null) for general access — grants all permissions.
@@ -95,8 +96,13 @@ async def create_consent(
     If permissions are provided, they must be a subset of the allowed set (user can remove but not add).
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
-        # The consumer_id from the request identifies the logged-in user
+        # Validate Bearer Token and verify ownership
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+        if user_auth['UserName'] != consent_data.consumer_id and str(user_auth['_id']) != consent_data.consumer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only create consents for yourself."
+            )
 
         # Look up the user's real ObjectId for Consumer.UserId
         user = users_service.get_user(consent_data.consumer_id)
@@ -133,15 +139,22 @@ async def create_consent(
 @limiter.limit("60/minute")
 async def list_consents(
     request: Request,
-    consumer_id: str = Query(..., description="The consumer's UserName or UserId")
+    consumer_id: str = Query(..., description="The consumer's UserName or UserId"),
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    List all consents for a specific user.
-
-    This is a Leafy Bank endpoint - user is already authenticated via session.
+    List all consents for a specific user. Requires bearer token authentication.
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
+        # Validate Bearer Token and verify ownership
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+        if user_auth['UserName'] != consumer_id and str(user_auth['_id']) != consumer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only list your own consents."
+            )
+
         consents = consent_service.list_consents_for_user(consumer_id)
 
         return Response(
@@ -160,19 +173,28 @@ async def list_consents(
 @limiter.limit("60/minute")
 async def get_consent(
     request: Request,
-    consent_id: str
+    consent_id: str,
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    Get a specific consent by its ConsentId.
-
-    This is a Leafy Bank endpoint - user is already authenticated via session.
+    Get a specific consent by its ConsentId. Requires bearer token authentication.
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
+        # Validate Bearer Token
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+
         consent = consent_service.get_consent(consent_id)
 
         if not consent:
             raise HTTPException(status_code=404, detail=f"Consent '{consent_id}' not found.")
+
+        # Verify the consent belongs to the authenticated user
+        if consent['Consumer']['UserName'] != user_auth['UserName']:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only view your own consents."
+            )
 
         return Response(
             content=json.dumps({"consent": consent}, cls=MyJSONEncoder),

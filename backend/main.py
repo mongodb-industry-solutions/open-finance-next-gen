@@ -41,7 +41,7 @@ app = FastAPI(
 
     ** Goal **: Showcase where MongoDB shines as part of an Open Finance Architecture.
 
-    MongoDB excels in its flexibility, serving as a central data storage solution for retrieving data 
+    MongoDB excels in its flexibility, serving as a central data storage solution for retrieving data
     from external financial institutions while seamlessly supporting diverse formats and structures.
 
     ## Quick Start
@@ -52,7 +52,7 @@ app = FastAPI(
     3. Explore: Access the secure endpoints for Open Finance and Leafy Bank.
 
     ## Documentation
-    
+
     Visit `/docs` or `/redoc` for interactive API documentation.
 
     ** This API leverages MongoDB to accommodate the dynamic needs of modern financial data management. **
@@ -205,9 +205,9 @@ app.include_router(
     tags=["Encryption Demo"]
 )
 
-# Debug router (for development/debugging)
-app.include_router(
-    debug_router.router,
-    prefix="/api/v1/debug",
-    tags=["Debug"]
-)
+# Debug router disabled — exposes tokens without auth (C-3 security fix)
+# app.include_router(
+#     debug_router.router,
+#     prefix="/api/v1/debug",
+#     tags=["Debug"]
+# )
