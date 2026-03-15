@@ -1,11 +1,15 @@
-"""Seed all spending profile transactions into the external_transactions collection.
+"""Seed spending profile transactions into the external_transactions collection.
 
-Loads all 6 scenario JSON files (3 profiles x 2 users) and inserts them into MongoDB
-as permanent, read-only data. These transactions have a `Profile` field and are
-filtered at query time — no load/clear needed for multi-user demo isolation.
+Loads scenario JSON files and inserts them into MongoDB as permanent, read-only data.
+These transactions have a `Profile` field and are filtered at query time.
 
 Usage:
     cd repos/open-finance-next-gen/backend && poetry run python ../scripts/seed_profiles.py
+    cd repos/open-finance-next-gen/backend && poetry run python ../scripts/seed_profiles.py --append
+
+Flags:
+    --append    Only insert MongoDB Bank transactions without deleting existing data.
+                Skips cleanup and only processes mongodb_bank_*.json files.
 
 Requires MONGODB_URI and OPENFINANCE_DB_NAME in backend/.env
 """
@@ -29,9 +33,12 @@ SCENARIOS_DIR = os.path.join(BACKEND_DIR, "data", "scenarios")
 
 USERS = ["fridaklo", "hellyrig"]
 PROFILES = ["overspender", "balanced", "saver"]
+BANKS = ["", "mongodb_bank_"]  # "" = Green Bank/NeoFinance (default), "mongodb_bank_" = MongoDB Bank
 
 
 def main():
+    append_only = "--append" in sys.argv
+
     if not MONGODB_URI:
         print("ERROR: MONGODB_URI not set in .env")
         sys.exit(1)
@@ -39,46 +46,62 @@ def main():
     client = MongoClient(MONGODB_URI)
     collection = client[DB_NAME][COLLECTION]
 
-    # Step 1: Clean up any existing profile or TxVar transactions
-    deleted_txvar = collection.delete_many({"TxVar": True}).deleted_count
-    if deleted_txvar:
-        print(f"Cleaned up {deleted_txvar} old TxVar transactions")
+    if append_only:
+        # Append mode: only delete existing MongoDB Bank profile transactions, then re-insert
+        deleted_mdb = collection.delete_many({
+            "Profile": {"$exists": True},
+            "Acct.Svcr": "MongoDB Bank"
+        }).deleted_count
+        if deleted_mdb:
+            print(f"Cleaned up {deleted_mdb} existing MongoDB Bank profile transactions")
+        bank_prefixes = ["mongodb_bank_"]
+        print("Append mode: inserting MongoDB Bank transactions only\n")
+    else:
+        # Full mode: clean everything and re-insert all
+        deleted_txvar = collection.delete_many({"TxVar": True}).deleted_count
+        if deleted_txvar:
+            print(f"Cleaned up {deleted_txvar} old TxVar transactions")
 
-    deleted_profile = collection.delete_many({"Profile": {"$exists": True}}).deleted_count
-    if deleted_profile:
-        print(f"Cleaned up {deleted_profile} existing profile transactions")
+        deleted_profile = collection.delete_many({"Profile": {"$exists": True}}).deleted_count
+        if deleted_profile:
+            print(f"Cleaned up {deleted_profile} existing profile transactions")
+        bank_prefixes = BANKS
 
-    # Step 2: Load and insert all profile transactions
+    # Load and insert profile transactions
     total_inserted = 0
     for user in USERS:
-        for profile in PROFILES:
-            filepath = os.path.join(SCENARIOS_DIR, user, f"{profile}.json")
-            if not os.path.exists(filepath):
-                print(f"WARNING: Missing {filepath}, skipping")
-                continue
+        for bank_prefix in bank_prefixes:
+            for profile in PROFILES:
+                filepath = os.path.join(SCENARIOS_DIR, user, f"{bank_prefix}{profile}.json")
+                if not os.path.exists(filepath):
+                    if bank_prefix:
+                        continue  # MongoDB Bank files are optional per user
+                    print(f"WARNING: Missing {filepath}, skipping")
+                    continue
 
-            with open(filepath) as f:
-                transactions = json.load(f)
+                with open(filepath) as f:
+                    transactions = json.load(f)
 
-            # Validate each transaction has Profile and no TxVar
-            for i, txn in enumerate(transactions):
-                if txn.get("TxVar"):
-                    print(
-                        f"ERROR: {filepath} txn {i} still has TxVar:true — "
-                        "update JSON files first (replace TxVar with Profile)"
-                    )
-                    sys.exit(1)
-                if txn.get("Profile") != profile:
-                    print(
-                        f"ERROR: {filepath} txn {i} has Profile='{txn.get('Profile')}' "
-                        f"expected '{profile}'"
-                    )
-                    sys.exit(1)
+                # Validate each transaction has Profile and no TxVar
+                for i, txn in enumerate(transactions):
+                    if txn.get("TxVar"):
+                        print(
+                            f"ERROR: {filepath} txn {i} still has TxVar:true — "
+                            "update JSON files first (replace TxVar with Profile)"
+                        )
+                        sys.exit(1)
+                    if txn.get("Profile") != profile:
+                        print(
+                            f"ERROR: {filepath} txn {i} has Profile='{txn.get('Profile')}' "
+                            f"expected '{profile}'"
+                        )
+                        sys.exit(1)
 
-            result = collection.insert_many(transactions)
-            count = len(result.inserted_ids)
-            total_inserted += count
-            print(f"  Inserted {count} txns: {user}/{profile}")
+                bank_label = bank_prefix.rstrip("_").replace("_", " ").title() or "default"
+                result = collection.insert_many(transactions)
+                count = len(result.inserted_ids)
+                total_inserted += count
+                print(f"  Inserted {count} txns: {user}/{bank_label}/{profile}")
 
     # Step 3: Verify
     base_count = collection.count_documents({"Profile": {"$exists": False}})
