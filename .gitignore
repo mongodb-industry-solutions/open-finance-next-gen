@@ -1,6 +1,8 @@
 # Kanopy
 knowledge_base_kanopy/
+scripts/
 .claude/
+.augment/
 _state.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -184,3 +186,6 @@ cython_debug/
 .vscode/
 notes.md
 security_check.sh
+backend/master-key.bin
+backend/encryption_config.json
+setup-hooks.sh

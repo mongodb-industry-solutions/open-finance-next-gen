@@ -1,5 +1,7 @@
 env:
   NODE_ENV: staging
+  KMS_PROVIDER: aws
+  ENCRYPTION_CONFIG_PATH: /etc/encryption/encryption_config.json
 
 envSecrets:
   MONGODB_URI: open-finance-consent
@@ -12,3 +14,13 @@ serviceAccount:
   irsa:
     accountId: "275662791714"
     roleName: "kanopy-staging-cicd-irsa"
+
+extraVolumes:
+  - name: encryption-config
+    configMap:
+      name: encryption-config
+
+extraVolumeMounts:
+  - name: encryption-config
+    mountPath: /etc/encryption
+    readOnly: true

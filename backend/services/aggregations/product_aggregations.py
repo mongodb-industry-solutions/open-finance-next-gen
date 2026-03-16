@@ -3,9 +3,7 @@ from bson import ObjectId
 from typing import List, Optional
 import logging
 
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 class ProductAggregations:
@@ -22,7 +20,7 @@ class ProductAggregations:
 
         # If no connected external products are specified, return 0
         if not connected_external_products:
-            logging.info(
+            logger.info(
                 f"No connected products specified for user: {user_id}. Returning 0 debt.")
             return 0
 
@@ -37,13 +35,13 @@ class ProductAggregations:
             {'$group': {'_id': None, 'TotalDebt': {'$sum': '$ProductBalance'}}}
         ]
 
-        logging.info(
+        logger.info(
             f"Aggregating total debt for user: {user_id} with connected products: {connected_external_products}")
         result_aggregate = list(
             self.external_products_collection.aggregate(pipeline))
 
         total_debt = result_aggregate[0]['TotalDebt'] if result_aggregate else 0
-        logging.info(f"Total External Product Debt: {total_debt}")
+        logger.info(f"Total External Product Debt: {total_debt}")
         return total_debt  # Return the total debt
 
     def get_user_total_debt(self, user_id: str, connected_external_products: Optional[List[str]] = None) -> dict:
@@ -54,7 +52,7 @@ class ProductAggregations:
         total_debt = self._aggregate_external_products_debt(
             user_id_obj, connected_external_products)
 
-        logging.info(f"Final Total Debt for user {user_id}: {total_debt}")
+        logger.info(f"Final Total Debt for user {user_id}: {total_debt}")
 
         return {
             "total_debt": total_debt,

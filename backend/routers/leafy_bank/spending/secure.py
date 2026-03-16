@@ -16,9 +16,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -67,5 +65,5 @@ async def get_spending_best_practices(request: Request):
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving spending best practices: {str(e)}")
+        logger.error(f"Error retrieving spending best practices: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -1,15 +1,11 @@
+import logging
 from bson import ObjectId
-from typing import Union
+from typing import Union, Optional
 from pymongo.client_session import ClientSession
 from datetime import datetime, timezone
-import logging
 from database.connection import MongoDBConnection
 
-from typing import Optional
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class TransactionsService:
@@ -70,7 +66,7 @@ class TransactionsService:
         transactions.sort(key=lambda x: max(
             date["TransactionDate"] for date in x["TransactionDates"]), reverse=True)
 
-        logging.info(f"Retrieved {len(transactions)} total transactions for user {user_name}")
+        logger.info(f"Retrieved {len(transactions)} total transactions for user {user_name}")
         return transactions
 
     def get_recent_transactions_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
@@ -89,7 +85,7 @@ class TransactionsService:
         user = self.users_collection.find_one(
             user_query, {"RecentTransactions": 1})
         if not user or "RecentTransactions" not in user:
-            logging.info(
+            logger.info(
                 f"No recent transactions found for user {user_identifier}")
             return []
         # Extracting the recent transaction IDs, sorted by date descending and limited to 20
@@ -138,19 +134,19 @@ class TransactionsService:
         try:
             transaction_amount = float(transaction_amount)
         except ValueError:
-            logging.error("Transaction amount must be a float.")
+            logger.error("Transaction amount must be a float.")
             return None
 
         # Check if the transaction amount is valid
         if transaction_amount <= 0:
-            logging.error("Transaction amount must be greater than 0.")
+            logger.error("Transaction amount must be greater than 0.")
             return None
 
         transaction_limit = float(500)
 
         # Check if the transaction amount exceeds the limit
         if transaction_amount > transaction_limit:
-            logging.error(
+            logger.error(
                 f"Transaction amount exceeds the limit of {transaction_limit}.")
             return None
 
@@ -158,52 +154,52 @@ class TransactionsService:
         sender_account = self.accounts_collection.find_one(
             {"_id": ObjectId(account_id_sender)})
         if not sender_account:
-            logging.error("Sender account not found.")
+            logger.error("Sender account not found.")
             return None
         if sender_account["AccountBalance"] < transaction_amount:
-            logging.error("Insufficient funds in sender account.")
+            logger.error("Insufficient funds in sender account.")
             return None
         if sender_account["AccountStatus"] == "Closed":
-            logging.error("Sender account is closed.")
+            logger.error("Sender account is closed.")
             return None
         if (sender_account["AccountNumber"] != sender_account_number or
                 sender_account["AccountType"] != sender_account_type):
-            logging.error("Sender account details do not match.")
+            logger.error("Sender account details do not match.")
             return None
 
         # Retrieve and validate sender user details
         sender_user = self.users_collection.find_one(
             {"_id": ObjectId(sender_user_id)})
         if not sender_user or sender_user["UserName"] != sender_user_name:
-            logging.error("Sender user details do not match.")
+            logger.error("Sender user details do not match.")
             return None
 
         # Retrieve and validate receiver account details
         receiver_account = self.accounts_collection.find_one(
             {"_id": ObjectId(account_id_receiver)})
         if not receiver_account:
-            logging.error("Receiver account not found.")
+            logger.error("Receiver account not found.")
             return None
         if receiver_account["AccountStatus"] == "Closed":
-            logging.error("Receiver account is closed.")
+            logger.error("Receiver account is closed.")
             return None
         if (receiver_account["AccountNumber"] != receiver_account_number or
                 receiver_account["AccountType"] != receiver_account_type):
-            logging.error("Receiver account details do not match.")
+            logger.error("Receiver account details do not match.")
             return None
 
         # Retrieve and validate receiver user details
         receiver_user = self.users_collection.find_one(
             {"_id": ObjectId(receiver_user_id)})
         if not receiver_user or receiver_user["UserName"] != receiver_user_name:
-            logging.error("Receiver user details do not match.")
+            logger.error("Receiver user details do not match.")
             return None
 
         def callback(session: ClientSession):
             # Create the transaction document
 
             if sender_user_name == receiver_user_name and sender_account_number == receiver_account_number:
-                logging.error("Cannot transfer to the same account!")
+                logger.error("Cannot transfer to the same account!")
                 return False
 
             transaction_internal = False
@@ -436,7 +432,7 @@ class TransactionsService:
                 session=session
             )
 
-            logging.info("Transaction completed!")
+            logger.info("Transaction completed!")
             return transaction_id
 
         # Start a client session and execute the transaction
@@ -467,5 +463,5 @@ class TransactionsService:
                 transaction_id = session.with_transaction(callback)
                 return transaction_id
             except Exception as e:
-                logging.error(f"Transaction failed: {e}")
+                logger.error(f"Transaction failed: {e}")
                 return None

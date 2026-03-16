@@ -6,7 +6,8 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_mongo_connection, get_encrypted_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.open_finance.customer_identification_service import CustomerIdentificationService
 from services.open_finance.repayment_history_service import RepaymentHistoryService
@@ -19,31 +20,33 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize the MongoDB connection
+# Initialize the MongoDB connections
 connection = get_mongo_connection()
+encrypted_connection = get_encrypted_mongo_connection()
 
 # Database names
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
 
-# Initialize services
+# Collection names
+ENCRYPTED_CONSENTS_COLLECTION = "encrypted_consents"
+
+# Initialize services (use encrypted connection for consent-gated services)
 customer_identification_service = CustomerIdentificationService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
-    "consents",
+    ENCRYPTED_CONSENTS_COLLECTION,
     "external_customer_identification"
 )
 
 repayment_history_service = RepaymentHistoryService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
-    "consents",
+    ENCRYPTED_CONSENTS_COLLECTION,
     "external_repayment_history"
 )
 
@@ -103,12 +106,12 @@ async def get_customer_identification(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error retrieving customer identification: {str(ve)}")
+        logger.error(f"Validation error retrieving customer identification: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving customer identification: {str(e)}")
+        logger.error(f"Error retrieving customer identification: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -158,12 +161,12 @@ async def get_repayment_history(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error retrieving repayment history: {str(ve)}")
+        logger.error(f"Validation error retrieving repayment history: {str(ve)}")
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving repayment history: {str(e)}")
+        logger.error(f"Error retrieving repayment history: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -198,5 +201,5 @@ async def get_credit_score(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving credit score for {user_identifier}: {str(e)}")
+        logger.error(f"Error retrieving credit score for {sanitize_log_input(user_identifier)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -15,9 +15,7 @@ from fastapi.responses import Response
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -99,7 +97,7 @@ async def classify_transactions(request: Request, body: ClassifyRequest):
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error classifying transactions: {str(e)}")
+        logger.error(f"Error classifying transactions: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -128,5 +126,5 @@ async def get_mcc_codes(request: Request):
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error retrieving MCC codes: {str(e)}")
+        logger.error(f"Error retrieving MCC codes: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -1,15 +1,14 @@
 """Service for classifying transactions by MCC code via MongoDB Atlas Vector Search."""
 
+import logging
 from typing import List, Optional
 from database.connection import MongoDBConnection
 import voyageai
-import logging
 from dotenv import load_dotenv
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class MCCClassificationService:
@@ -59,7 +58,7 @@ class MCCClassificationService:
         ]
 
         # Batch embed all queries in a single API call
-        logging.info(f"Embedding {len(query_texts)} transactions with {self.model}")
+        logger.info(f"Embedding {len(query_texts)} transactions with {self.model}")
         embed_result = self.vo.embed(
             query_texts,
             model=self.model,
@@ -99,7 +98,7 @@ class MCCClassificationService:
             results.append(result)
 
         classified = sum(1 for r in results if r["CategoryId"] != "uncategorized")
-        logging.info(f"Classified {classified}/{len(results)} transactions via vector search")
+        logger.info(f"Classified {classified}/{len(results)} transactions via vector search")
 
         return results
 

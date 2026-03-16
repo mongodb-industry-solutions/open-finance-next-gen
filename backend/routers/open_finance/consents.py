@@ -6,9 +6,11 @@ from pydantic import BaseModel
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
+from services.internal.users_service import UsersService
 from encoder.json_encoder import MyJSONEncoder
 
 import os
@@ -16,25 +18,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Initialize the MongoDB connection
-connection = get_mongo_connection()
+# Initialize the encrypted MongoDB connection (Queryable Encryption on consents)
+encrypted_connection = get_encrypted_mongo_connection()
 
 # Get the database name from the environment variable
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 
 # Collection names
-CONSENTS_COLLECTION = "consents"
+CONSENTS_COLLECTION = "encrypted_consents"
 INSTITUTIONS_COLLECTION = "institutions"
 
-# Initialize the ConsentService
+# Initialize UsersService for user lookups (users are in leafy_bank database)
+connection = get_mongo_connection()
+LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
+USERS_COLLECTION = "users"
+users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
+
+# Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
-    connection,
+    encrypted_connection,
     OPENFINANCE_DB_NAME,
     CONSENTS_COLLECTION,
     INSTITUTIONS_COLLECTION
@@ -76,12 +82,13 @@ class MessageResponse(BaseModel):
 @limiter.limit("30/minute")
 async def create_consent(
     request: Request,
-    consent_data: CreateConsentRequest
+    consent_data: CreateConsentRequest,
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    Create a new consent for data sharing.
+    Create a new consent for data sharing. Requires bearer token authentication.
 
-    This is a Leafy Bank endpoint - user is already authenticated via session.
     The source_institution_name must be a valid institution in the system.
     Valid purposes: PERSONAL_LOAN_PORTABILITY, PAYROLL_LOAN_PORTABILITY, VEHICLE_LOAN_PORTABILITY, FINANCIAL_ADVICE
     Or omit purpose (null) for general access — grants all permissions.
@@ -90,13 +97,23 @@ async def create_consent(
     If permissions are provided, they must be a subset of the allowed set (user can remove but not add).
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
-        # The consumer_id from the request identifies the logged-in user
+        # Validate Bearer Token and verify ownership
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+        if user_auth['UserName'] != consent_data.consumer_id and str(user_auth['_id']) != consent_data.consumer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only create consents for yourself."
+            )
+
+        # Look up the user's real ObjectId for Consumer.UserId
+        user = users_service.get_user(consent_data.consumer_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Consumer user not found")
 
         # Create the consent
         consent = consent_service.create_consent(
             consumer_user_name=consent_data.consumer_id,
-            consumer_user_id=consent_data.consumer_id,
+            consumer_user_id=str(user["_id"]),
             purpose=consent_data.purpose,
             source_institution_name=consent_data.source_institution_name,
             expiration_days=consent_data.expiration_days,
@@ -110,12 +127,12 @@ async def create_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error creating consent: {str(ve)}")
+        logger.error(f"Validation error creating consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error creating consent: {str(e)}")
+        logger.error(f"Error creating consent: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -123,15 +140,22 @@ async def create_consent(
 @limiter.limit("60/minute")
 async def list_consents(
     request: Request,
-    consumer_id: str = Query(..., description="The consumer's UserName or UserId")
+    consumer_id: str = Query(..., description="The consumer's UserName or UserId"),
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    List all consents for a specific user.
-
-    This is a Leafy Bank endpoint - user is already authenticated via session.
+    List all consents for a specific user. Requires bearer token authentication.
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
+        # Validate Bearer Token and verify ownership
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+        if user_auth['UserName'] != consumer_id and str(user_auth['_id']) != consumer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only list your own consents."
+            )
+
         consents = consent_service.list_consents_for_user(consumer_id)
 
         return Response(
@@ -142,7 +166,7 @@ async def list_consents(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error listing consents: {str(e)}")
+        logger.error(f"Error listing consents: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -150,19 +174,28 @@ async def list_consents(
 @limiter.limit("60/minute")
 async def get_consent(
     request: Request,
-    consent_id: str
+    consent_id: str,
+    bearer_token: str = Depends(get_bearer_token),
+    auth: Auth = Depends(get_auth)
 ):
     """
-    Get a specific consent by its ConsentId.
-
-    This is a Leafy Bank endpoint - user is already authenticated via session.
+    Get a specific consent by its ConsentId. Requires bearer token authentication.
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
+        # Validate Bearer Token
+        user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
+
         consent = consent_service.get_consent(consent_id)
 
         if not consent:
             raise HTTPException(status_code=404, detail=f"Consent '{consent_id}' not found.")
+
+        # Verify the consent belongs to the authenticated user
+        if consent['Consumer']['UserName'] != user_auth['UserName']:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized: You can only view your own consents."
+            )
 
         return Response(
             content=json.dumps({"consent": consent}, cls=MyJSONEncoder),
@@ -172,7 +205,7 @@ async def get_consent(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error getting consent {consent_id}: {str(e)}")
+        logger.error(f"Error getting consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -208,7 +241,7 @@ async def update_consent_status(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only modify your own consents."
@@ -230,12 +263,12 @@ async def update_consent_status(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error updating consent status: {str(ve)}")
+        logger.error(f"Validation error updating consent status: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error updating consent status {consent_id}: {str(e)}")
+        logger.error(f"Error updating consent status {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -267,7 +300,7 @@ async def approve_consent(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only approve your own consents."
@@ -285,12 +318,12 @@ async def approve_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error approving consent: {str(ve)}")
+        logger.error(f"Validation error approving consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error approving consent {consent_id}: {str(e)}")
+        logger.error(f"Error approving consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -322,7 +355,7 @@ async def revoke_consent(
 
         # Verify the consent belongs to the authenticated user
         if consent['Consumer']['UserName'] != user_auth['UserName']:
-            logging.error("Unauthorized: consent does not belong to authenticated user")
+            logger.error("Unauthorized: consent does not belong to authenticated user")
             raise HTTPException(
                 status_code=403,
                 detail="Unauthorized: You can only revoke your own consents."
@@ -340,10 +373,10 @@ async def revoke_consent(
         )
 
     except ValueError as ve:
-        logging.error(f"Validation error revoking consent: {str(ve)}")
+        logger.error(f"Validation error revoking consent: {str(ve)}")
         raise HTTPException(status_code=400, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error revoking consent {consent_id}: {str(e)}")
+        logger.error(f"Error revoking consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

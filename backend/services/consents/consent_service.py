@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from secrets import token_hex
@@ -9,11 +10,7 @@ from services.consents.consent_state_machine import (
     VALID_STATUSES
 )
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Purpose -> default permissions mapping
 # All credit portability purposes share the same permission set
@@ -68,16 +65,13 @@ class ConsentService:
         try:
             # Unique index on ConsentId
             self.consents_collection.create_index("ConsentId", unique=True)
-            # Index for querying by user
-            self.consents_collection.create_index("Consumer.UserName")
-            # TTL index for auto-expiry (documents expire at ExpirationDateTime)
-            self.consents_collection.create_index(
-                "ExpirationDateTime",
-                expireAfterSeconds=0
-            )
-            logging.info("Consent collection indexes ensured")
+            # NOTE: Consumer.UserName index removed — field is encrypted via
+            # Queryable Encryption. Equality queries work via QE's internal metadata.
+            # NOTE: TTL index removed — not allowed on QE-encrypted collections.
+            # Consent expiration must be checked in application code.
+            logger.info("Consent collection indexes ensured")
         except Exception as e:
-            logging.warning(f"Index creation warning (may already exist): {e}")
+            logger.warning(f"Index creation warning (may already exist): {e}")
 
     def _generate_consent_id(self, institution_name: str) -> str:
         """Generate a unique consent ID in URN format.
@@ -226,9 +220,19 @@ class ConsentService:
 
         # Insert the document
         self.consents_collection.insert_one(consent_document)
-        logging.info(f"Consent created: {consent_id} for user {consumer_user_name}")
+        logger.info(f"Consent created: {consent_id} for user {consumer_user_name}")
 
         return consent_document
+
+    @staticmethod
+    def _strip_qe_metadata(doc: dict) -> dict:
+        """Remove Queryable Encryption internal fields from a document.
+
+        QE adds __safeContent__ (Binary array) to documents for internal
+        indexing. This metadata is not serializable and not useful to API consumers.
+        """
+        doc.pop("__safeContent__", None)
+        return doc
 
     def get_consent(self, consent_id: str) -> Optional[dict]:
         """Retrieve a consent by its ConsentId.
@@ -241,9 +245,10 @@ class ConsentService:
         """
         consent = self.consents_collection.find_one({"ConsentId": consent_id})
         if consent:
-            logging.info(f"Consent found: {consent_id}")
+            logger.info(f"Consent found: {consent_id}")
+            return self._strip_qe_metadata(consent)
         else:
-            logging.info(f"Consent not found: {consent_id}")
+            logger.info(f"Consent not found: {consent_id}")
         return consent
 
     def list_consents_for_user(self, user_name: str) -> List[dict]:
@@ -256,8 +261,8 @@ class ConsentService:
             List[dict]: A list of consent documents for the user.
         """
         consents = list(self.consents_collection.find({"Consumer.UserName": user_name}))
-        logging.info(f"Found {len(consents)} consents for user {user_name}")
-        return consents
+        logger.info(f"Found {len(consents)} consents for user {user_name}")
+        return [self._strip_qe_metadata(c) for c in consents]
 
     def update_status(
         self,
@@ -317,7 +322,7 @@ class ConsentService:
         )
 
         if result.modified_count > 0:
-            logging.info(f"Consent {consent_id} status updated: {current_status} -> {new_status}")
+            logger.info(f"Consent {consent_id} status updated: {current_status} -> {new_status}")
             return self.get_consent(consent_id)
 
         return None

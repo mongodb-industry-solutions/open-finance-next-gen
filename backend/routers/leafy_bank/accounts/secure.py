@@ -8,6 +8,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.accounts_service import AccountsService
 from encoder.json_encoder import MyJSONEncoder
@@ -17,9 +18,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -111,7 +110,7 @@ async def fetch_accounts_for_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logging.info(f"Fetching accounts for user: {user_identifier}")
+        logger.info(f"Fetching accounts for user: {sanitize_log_input(user_identifier)}")
 
         if ObjectId.is_valid(user_identifier):
             user_identifier = ObjectId(user_identifier)
@@ -122,7 +121,7 @@ async def fetch_accounts_for_user(
     except HTTPException as he:
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
-        logging.error(f"Error fetching accounts for user: {str(e)}")
+        logger.error(f"Error fetching accounts for user: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -130,7 +129,7 @@ async def fetch_accounts_for_user(
 # @router.post("/fetch-active-accounts-for-user", response_model=FetchAccountsResponse)
 # @limiter.limit("60/minute")
 # async def fetch_active_accounts_for_user(
-#     request: Request, 
+#     request: Request,
 #     user_data: FetchAccountsForUserRequest,
 #     bearer_token: str = Depends(get_bearer_token),
 #     auth: Auth = Depends(get_auth)
@@ -170,7 +169,7 @@ async def fetch_accounts_for_user(
 # @router.post("/find-account-by-number", response_model=FindAccountByNumberResponse)
 # @limiter.limit("60/minute")
 # async def find_account_by_number(
-#     request: Request, 
+#     request: Request,
 #     account_data: FindAccountByNumberRequest,
 #     bearer_token: str = Depends(get_bearer_token),
 #     auth: Auth = Depends(get_auth)
@@ -196,7 +195,7 @@ async def fetch_accounts_for_user(
 # @router.post("/find-active-account-by-number", response_model=FindAccountByNumberResponse)
 # @limiter.limit("60/minute")
 # async def find_active_account_by_number(
-#     request: Request, 
+#     request: Request,
 #     account_data: FindAccountByNumberRequest,
 #     bearer_token: str = Depends(get_bearer_token),
 #     auth: Auth = Depends(get_auth)

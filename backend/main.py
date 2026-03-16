@@ -22,11 +22,12 @@ from routers.leafy_bank.portability import secure as lb_portability_secure
 from routers.leafy_bank.mcc import secure as lb_mcc_secure
 from routers import debug as debug_router
 from routers import demo as demo_router
+from routers import encryption_demo as encryption_demo_router
 
 # Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
 # Set up the Limiter
@@ -40,7 +41,7 @@ app = FastAPI(
 
     ** Goal **: Showcase where MongoDB shines as part of an Open Finance Architecture.
 
-    MongoDB excels in its flexibility, serving as a central data storage solution for retrieving data 
+    MongoDB excels in its flexibility, serving as a central data storage solution for retrieving data
     from external financial institutions while seamlessly supporting diverse formats and structures.
 
     ## Quick Start
@@ -51,7 +52,7 @@ app = FastAPI(
     3. Explore: Access the secure endpoints for Open Finance and Leafy Bank.
 
     ## Documentation
-    
+
     Visit `/docs` or `/redoc` for interactive API documentation.
 
     ** This API leverages MongoDB to accommodate the dynamic needs of modern financial data management. **
@@ -197,9 +198,16 @@ app.include_router(
     tags=["Demo"]
 )
 
-# Debug router (for development/debugging)
+# Encryption demo router (Queryable Encryption comparison)
 app.include_router(
-    debug_router.router,
-    prefix="/api/v1/debug",
-    tags=["Debug"]
+    encryption_demo_router.router,
+    prefix="/api/v1/encryption-demo",
+    tags=["Encryption Demo"]
 )
+
+# Debug router disabled — exposes tokens without auth (C-3 security fix)
+# app.include_router(
+#     debug_router.router,
+#     prefix="/api/v1/debug",
+#     tags=["Debug"]
+# )

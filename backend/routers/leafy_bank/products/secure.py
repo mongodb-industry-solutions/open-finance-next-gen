@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.product_service import ProductService
 from encoder.json_encoder import MyJSONEncoder
@@ -16,9 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Set up logging configuration
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -86,7 +85,7 @@ async def list_products(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error listing products: {str(e)}")
+        logger.error(f"Error listing products: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -153,7 +152,7 @@ async def match_products(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error matching products: {str(e)}")
+        logger.error(f"Error matching products: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -190,5 +189,5 @@ async def get_product(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logging.error(f"Error getting product {product_id}: {str(e)}")
+        logger.error(f"Error getting product {sanitize_log_input(product_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

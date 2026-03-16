@@ -1,22 +1,48 @@
-FROM python:3.10-slim-buster
+# ---- Stage 1: Build ----
+FROM python:3.10-slim-bookworm AS builder
 
-ENV GET_POETRY_IGNORE_DEPRECATION=1
+WORKDIR /app
 
-WORKDIR /
+# Install curl (needed only in build stage for crypt_shared download)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Poetry dependencies
-COPY /backend/pyproject.toml /backend/poetry.lock ./
+# Download MongoDB crypt_shared library (Linux x86_64, Debian 12)
+# Must match your Atlas server major version (8.0.x for MongoDB 8.x)
+ARG CRYPT_SHARED_VERSION=8.0.19
+RUN curl -fSL "https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-debian12-${CRYPT_SHARED_VERSION}.tgz" \
+    -o /tmp/crypt_shared.tgz \
+    && mkdir -p /opt/mongo_crypt/lib \
+    && tar -xzf /tmp/crypt_shared.tgz --strip-components=1 -C /opt/mongo_crypt \
+    && rm /tmp/crypt_shared.tgz
 
-# Poetry installation
-RUN pip install poetry==1.8.4
+# Install Poetry and dependencies (before copying app code for layer caching)
+COPY backend/pyproject.toml backend/poetry.lock ./
+RUN pip install --no-cache-dir poetry==1.8.4 \
+    && poetry config virtualenvs.in-project true \
+    && poetry install --no-interaction --no-cache --no-root
 
-# Poetry config & install dependencies
-RUN poetry config virtualenvs.in-project true
-RUN poetry lock --no-update
-RUN poetry install --no-interaction -v --no-cache --no-root
+# ---- Stage 2: Runtime ----
+FROM python:3.10-slim-bookworm
 
-COPY ./backend/ .
+WORKDIR /app
+
+# Create non-root user
+RUN groupadd --gid 1001 appuser \
+    && useradd --uid 1001 --gid appuser --no-create-home appuser
+
+# Copy only what we need from the build stage
+COPY --from=builder /opt/mongo_crypt/lib/mongo_crypt_v1.so /opt/mongo_crypt/lib/mongo_crypt_v1.so
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application code
+COPY backend/ .
+
+ENV CRYPT_SHARED_LIB_PATH=/opt/mongo_crypt/lib/mongo_crypt_v1.so
+ENV PATH="/app/.venv/bin:$PATH"
+
+USER appuser
 
 EXPOSE 8080
 
-CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

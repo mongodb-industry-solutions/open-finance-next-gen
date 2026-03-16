@@ -1,9 +1,8 @@
+import logging
 from database.connection import MongoDBConnection
 from services.consents.consent_validator import ConsentValidator
-import logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class RepaymentHistoryService:
@@ -45,7 +44,7 @@ class RepaymentHistoryService:
             "ProductBank": source_institution
         }))
 
-        logging.info(
+        logger.info(
             f"Retrieved {len(records)} repayment history records "
             f"for {user_name} from {source_institution}"
         )
