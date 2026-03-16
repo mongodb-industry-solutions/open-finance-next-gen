@@ -9,6 +9,7 @@ from slowapi.util import get_remote_address
 from bson import ObjectId
 
 import logging
+from utils.security import sanitize_log_input
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ async def get_authorization(
     try:
         user_document = tokens_collection.find_one(query)
         if not user_document:
-            logger.warning(f"User identifier {user_identifier} not found.")
+            logger.warning(f"User identifier {sanitize_log_input(user_identifier)} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Prepare the response data

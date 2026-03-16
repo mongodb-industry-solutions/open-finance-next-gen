@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.product_service import ProductService
 from encoder.json_encoder import MyJSONEncoder
@@ -188,5 +189,5 @@ async def get_product(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error getting product {product_id}: {str(e)}")
+        logger.error(f"Error getting product {sanitize_log_input(product_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

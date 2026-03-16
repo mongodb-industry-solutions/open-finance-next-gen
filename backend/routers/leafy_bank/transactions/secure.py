@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.transactions_service import TransactionsService
 from encoder.json_encoder import MyJSONEncoder
@@ -68,7 +69,7 @@ async def fetch_recent_transactions_for_user(
             raise HTTPException(
                 status_code=400, detail="User identifier is required.")
 
-        logger.info(f"Fetching recent transactions for user: {user_identifier}")
+        logger.info(f"Fetching recent transactions for user: {sanitize_log_input(user_identifier)}")
 
         # If `user_identifier` is an ObjectId-like string, convert it to ObjectId
         if ObjectId.is_valid(user_identifier):
@@ -76,7 +77,7 @@ async def fetch_recent_transactions_for_user(
 
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logger.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Retrieve recent transactions for the valid user
@@ -132,7 +133,7 @@ async def get_spending_transactions(
     try:
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logger.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         transactions = transactions_service.get_all_transactions_for_user(user_identifier)

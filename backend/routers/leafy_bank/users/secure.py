@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.users_service import UsersService
 from encoder.json_encoder import MyJSONEncoder
@@ -97,7 +98,7 @@ async def find_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logger.info(f"Finding user: {user_identifier}")
+        logger.info(f"Finding user: {sanitize_log_input(user_identifier)}")
 
         # Convert string-based ObjectId to a valid ObjectId, if applicable
         if ObjectId.is_valid(user_identifier):
@@ -105,7 +106,7 @@ async def find_user(
 
         user = users_service.get_user(user_identifier)
         if not user:
-            logger.error(f"User with identifier {user_identifier} not found.")
+            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
             raise HTTPException(status_code=404, detail="User not found.")
 
         return Response(content=json.dumps({"user": user}, cls=MyJSONEncoder), media_type="application/json")

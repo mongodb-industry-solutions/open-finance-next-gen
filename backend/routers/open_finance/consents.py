@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
 from services.internal.users_service import UsersService
@@ -204,7 +205,7 @@ async def get_consent(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error getting consent {consent_id}: {str(e)}")
+        logger.error(f"Error getting consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -267,7 +268,7 @@ async def update_consent_status(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error updating consent status {consent_id}: {str(e)}")
+        logger.error(f"Error updating consent status {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -322,7 +323,7 @@ async def approve_consent(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error approving consent {consent_id}: {str(e)}")
+        logger.error(f"Error approving consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -377,5 +378,5 @@ async def revoke_consent(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error revoking consent {consent_id}: {str(e)}")
+        logger.error(f"Error revoking consent {sanitize_log_input(consent_id)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -8,6 +8,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.internal.accounts_service import AccountsService
 from encoder.json_encoder import MyJSONEncoder
@@ -109,7 +110,7 @@ async def fetch_accounts_for_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logger.info(f"Fetching accounts for user: {user_identifier}")
+        logger.info(f"Fetching accounts for user: {sanitize_log_input(user_identifier)}")
 
         if ObjectId.is_valid(user_identifier):
             user_identifier = ObjectId(user_identifier)

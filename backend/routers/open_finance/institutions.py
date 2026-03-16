@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.institutions.institution_service import InstitutionService
 from encoder.json_encoder import MyJSONEncoder
@@ -94,7 +95,7 @@ async def get_institution(
         institution = institution_service.get_institution_by_name(institution_name)
 
         if not institution:
-            logger.error(f"Institution not found: {institution_name}")
+            logger.error(f"Institution not found: {sanitize_log_input(institution_name)}")
             raise HTTPException(
                 status_code=404,
                 detail=f"Institution '{institution_name}' not found."
@@ -108,5 +109,5 @@ async def get_institution(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error getting institution {institution_name}: {str(e)}")
+        logger.error(f"Error getting institution {sanitize_log_input(institution_name)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

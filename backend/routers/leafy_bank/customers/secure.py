@@ -7,6 +7,7 @@ import logging
 import json
 
 from dependencies import get_auth, get_bearer_token, get_mongo_connection, get_encrypted_mongo_connection
+from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.open_finance.customer_identification_service import CustomerIdentificationService
 from services.open_finance.repayment_history_service import RepaymentHistoryService
@@ -200,5 +201,5 @@ async def get_credit_score(
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error retrieving credit score for {user_identifier}: {str(e)}")
+        logger.error(f"Error retrieving credit score for {sanitize_log_input(user_identifier)}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
