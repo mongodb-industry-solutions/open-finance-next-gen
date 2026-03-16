@@ -9,12 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 
 # Download MongoDB crypt_shared library (Linux x86_64, Debian 12)
 # Must match your Atlas server major version (8.0.x for MongoDB 8.x)
-ARG CRYPT_SHARED_VERSION=8.0.19
-RUN curl -fSL "https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-debian12-${CRYPT_SHARED_VERSION}.tgz" \
-    -o /tmp/crypt_shared.tgz \
-    && mkdir -p /opt/mongo_crypt/lib \
-    && tar -xzf /tmp/crypt_shared.tgz --strip-components=1 -C /opt/mongo_crypt \
-    && rm /tmp/crypt_shared.tgz
+# Available versions: https://www.mongodb.com/try/download/enterprise-advanced/releases/archive
+ARG CRYPT_SHARED_VERSION=8.0.4
+RUN mkdir -p /opt/mongo_crypt \
+    && curl -fSL "https://downloads.mongodb.com/linux/mongo_crypt_shared_v1-linux-x86_64-enterprise-debian12-${CRYPT_SHARED_VERSION}.tgz" \
+    | tar -xzf - --strip-components=1 -C /opt/mongo_crypt \
+    && test -f /opt/mongo_crypt/lib/mongo_crypt_v1.so \
+    || (echo "ERROR: mongo_crypt_v1.so not found after extraction. Check CRYPT_SHARED_VERSION." && exit 1)
 
 # Install Poetry and dependencies (before copying app code for layer caching)
 COPY backend/pyproject.toml backend/poetry.lock ./
