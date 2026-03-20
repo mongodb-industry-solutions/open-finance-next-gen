@@ -11,6 +11,31 @@ trigger:
     - main
 
 steps:
+  - name: secret-scan
+    image: zricethezav/gitleaks:latest
+    commands:
+      - gitleaks detect --source . --verbose
+    when:
+      event:
+        - pull_request
+
+  - name: dependency-scan
+    image: aquasec/trivy:latest
+    commands:
+      - trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+    when:
+      event:
+        - pull_request
+
+  - name: lint
+    image: python:3.10-slim
+    commands:
+      - pip install ruff
+      - ruff check backend/
+    when:
+      event:
+        - pull_request
+
   - name: build-check
     image: plugins/kaniko-ecr
     settings:
