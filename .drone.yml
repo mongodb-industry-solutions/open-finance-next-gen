@@ -26,7 +26,7 @@ steps:
     image: alpine/helm:3.14.0
     commands:
       - helm repo add mongodb https://10gen.github.io/helm-charts
-      - helm template open-finance-next-gen mongodb/web-app --version 4.25.0 -f environment/staging.yaml
+      - helm template open-finance-next-gen mongodb/web-app --version 4.25.0 -f environment/staging.yaml --set image.repository=test --set image.tag=test
     when:
       event:
         - pull_request
