@@ -1,6 +1,42 @@
 ---
 kind: pipeline
 type: kubernetes
+name: validate-pr
+
+trigger:
+  event:
+    - pull_request
+  branch:
+    - staging
+    - main
+
+steps:
+  - name: build-check
+    image: plugins/kaniko-ecr
+    settings:
+      no_push: true
+      registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com
+      repo: industrysolutions/open-finance-next-gen
+      dockerfile: Dockerfile.backend
+    when:
+      event:
+        - pull_request
+
+  - name: helm-lint-staging
+    image: public.ecr.aws/kanopy/drone-helm:v3
+    settings:
+      mode: lint
+      chart: mongodb/web-app
+      chart_version: 4.25.0
+      add_repos: [mongodb=https://10gen.github.io/helm-charts]
+      values_files: [ "environment/staging.yaml" ]
+    when:
+      event:
+        - pull_request
+
+---
+kind: pipeline
+type: kubernetes
 name: staging
 
 trigger:
