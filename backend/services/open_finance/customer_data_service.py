@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime, timezone
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import can_retrieve_data

@@ -6,7 +6,7 @@ This endpoint is for development/debugging only.
 """
 
 from fastapi import APIRouter, Depends
-from typing import List, Dict, Any
+from typing import Dict, Any
 from database.connection import MongoDBConnection
 from dependencies import get_mongo_connection
 from bson import json_util

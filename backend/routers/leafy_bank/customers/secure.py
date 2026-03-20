@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict, Optional
+from typing import List, Dict
 from pydantic import BaseModel
 import logging
 import json

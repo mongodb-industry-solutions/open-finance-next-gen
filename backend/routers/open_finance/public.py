@@ -47,7 +47,7 @@ async def get_authorization(
         query = {"$or": [{"UserName": user_identifier},
                          {"_id": ObjectId(user_identifier)}]}
         logger.info(
-            f"User identifier is a valid ObjectId, querying by _id as well.")
+            "User identifier is a valid ObjectId, querying by _id as well.")
 
     try:
         user_document = tokens_collection.find_one(query)

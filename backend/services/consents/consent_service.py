@@ -5,9 +5,7 @@ from secrets import token_hex
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import (
     validate_transition,
-    validate_purpose,
-    is_terminal,
-    VALID_STATUSES
+    validate_purpose
 )
 
 logger = logging.getLogger(__name__)
