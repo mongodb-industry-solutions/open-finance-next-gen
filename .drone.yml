@@ -22,14 +22,11 @@ steps:
       event:
         - pull_request
 
-  - name: helm-lint-staging
-    image: public.ecr.aws/kanopy/drone-helm:v3
-    settings:
-      mode: lint
-      chart: mongodb/web-app
-      chart_version: 4.25.0
-      add_repos: [mongodb=https://10gen.github.io/helm-charts]
-      values_files: [ "environment/staging.yaml" ]
+  - name: helm-validate-staging
+    image: alpine/helm:3.14.0
+    commands:
+      - helm repo add mongodb https://10gen.github.io/helm-charts
+      - helm template open-finance-next-gen mongodb/web-app --version 4.25.0 -f environment/staging.yaml
     when:
       event:
         - pull_request
