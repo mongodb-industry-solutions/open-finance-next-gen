@@ -64,6 +64,8 @@ name: staging
 trigger:
   branch:
     - staging
+  event:
+    - push
 
 steps:
   - name: publish-backend
@@ -119,6 +121,8 @@ name: production
 trigger:
   branch:
     - main  # or master, depending on your main branch name
+  event:
+    - push
 
 steps:
   - name: publish-backend-prod
