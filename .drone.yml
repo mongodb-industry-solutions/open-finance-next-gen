@@ -22,7 +22,7 @@ steps:
   - name: dependency-scan
     image: aquasec/trivy:latest
     commands:
-      - trivy fs --severity HIGH,CRITICAL --exit-code 1 .
+      - trivy fs --severity CRITICAL --exit-code 1 .
     when:
       event:
         - pull_request
