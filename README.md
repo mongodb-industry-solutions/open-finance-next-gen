@@ -1,4 +1,4 @@
-# Open Finance Next Gen — Backend Platform
+# Open Finance Next Gen
 
 Demonstrates how MongoDB Atlas powers secure Open Finance data exchange — consent management with Queryable Encryption, dual-database architecture for internal and external bank data, and Atlas Vector Search for real-time transaction classification.
 
@@ -12,6 +12,7 @@ Demonstrates how MongoDB Atlas powers secure Open Finance data exchange — cons
 ## High-Level Architecture
 
 <!-- TODO: Add architecture diagram -->
+
 ![Architecture Diagram](placeholder-architecture-diagram.png)
 
 ```text
@@ -136,27 +137,27 @@ The demo requires seed data across two databases. Import the following collectio
 
 **Database: `open_finance_test`**
 
-| Collection | Purpose |
-| ---------- | ------- |
-| `tokens` | Bearer token storage |
-| `institutions` | Available external banks |
-| `external_accounts` | Account data from external institutions |
-| `external_products` | Loans/credit products from external banks |
-| `external_transactions_test` | ISO 20022-aligned transaction data |
-| `external_repayment_history` | Repayment data for portability |
-| `external_customer_identification` | Customer identity matching |
+| Collection                         | Purpose                                   |
+| ---------------------------------- | ----------------------------------------- |
+| `tokens`                           | Bearer token storage                      |
+| `institutions`                     | Available external banks                  |
+| `external_accounts`                | Account data from external institutions   |
+| `external_products`                | Loans/credit products from external banks |
+| `external_transactions_test`       | ISO 20022-aligned transaction data        |
+| `external_repayment_history`       | Repayment data for portability            |
+| `external_customer_identification` | Customer identity matching                |
 
 **Database: `leafy_bank_test`**
 
-| Collection | Purpose |
-| ---------- | ------- |
-| `accounts` | Internal bank accounts |
-| `users` | Internal bank users |
-| `transactions` | Internal transaction history |
-| `products` | Leafy Bank loan/credit products |
-| `customers` | Customer credit information |
+| Collection                | Purpose                                       |
+| ------------------------- | --------------------------------------------- |
+| `accounts`                | Internal bank accounts                        |
+| `users`                   | Internal bank users                           |
+| `transactions`            | Internal transaction history                  |
+| `products`                | Leafy Bank loan/credit products               |
+| `customers`               | Customer credit information                   |
 | `spending_best_practices` | MCC code ranges and spending category targets |
-| `portability_rules` | Underwriting rules for loan portability |
+| `portability_rules`       | Underwriting rules for loan portability       |
 
 ### Seed Spending Profiles
 
@@ -298,70 +299,71 @@ make clean    # Remove container and images
 
 ### Authentication
 
-| Method | Path | Auth | Purpose |
-| ------ | ---- | ---- | ------- |
-| `GET` | `/api/v1/openfinance/public/get-authorization` | None | Get bearer token for a user |
-| `POST` | `/api/v1/openfinance/public/create-user` | None | Create a new user and token |
-| `POST` | `/api/v1/openfinance/secure/validate-token` | Bearer | Validate token health |
+| Method | Path                                           | Auth   | Purpose                     |
+| ------ | ---------------------------------------------- | ------ | --------------------------- |
+| `GET`  | `/api/v1/openfinance/public/get-authorization` | None   | Get bearer token for a user |
+| `POST` | `/api/v1/openfinance/public/create-user`       | None   | Create a new user and token |
+| `POST` | `/api/v1/openfinance/secure/validate-token`    | Bearer | Validate token health       |
 
 ### Consent Management (Queryable Encrypted)
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `POST` | `/api/v1/openfinance/secure/consents` | Create consent (AWAITING_AUTHORISATION) |
-| `GET` | `/api/v1/openfinance/secure/consents/{consent_id}` | Retrieve consent by ID |
-| `PATCH` | `/api/v1/openfinance/secure/consents/{consent_id}/status` | Approve or reject consent |
-| `DELETE` | `/api/v1/openfinance/secure/consents/{consent_id}` | Revoke consent |
-| `GET` | `/api/v1/openfinance/secure/consents` | List consents for a user |
+| Method   | Path                                                      | Purpose                                 |
+| -------- | --------------------------------------------------------- | --------------------------------------- |
+| `POST`   | `/api/v1/openfinance/secure/consents`                     | Create consent (AWAITING_AUTHORISATION) |
+| `GET`    | `/api/v1/openfinance/secure/consents/{consent_id}`        | Retrieve consent by ID                  |
+| `PATCH`  | `/api/v1/openfinance/secure/consents/{consent_id}/status` | Approve or reject consent               |
+| `DELETE` | `/api/v1/openfinance/secure/consents/{consent_id}`        | Revoke consent                          |
+| `GET`    | `/api/v1/openfinance/secure/consents`                     | List consents for a user                |
 
 ### Consent-Gated Data Retrieval
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `GET` | `/api/v1/openfinance/secure/customers/{user}/external-data` | All external data (requires `consent_id`) |
-| `GET` | `/api/v1/openfinance/secure/customers/{user}/external-transactions` | Transactions only (requires `consent_id`) |
+| Method | Path                                                                | Purpose                                   |
+| ------ | ------------------------------------------------------------------- | ----------------------------------------- |
+| `GET`  | `/api/v1/openfinance/secure/customers/{user}/external-data`         | All external data (requires `consent_id`) |
+| `GET`  | `/api/v1/openfinance/secure/customers/{user}/external-transactions` | Transactions only (requires `consent_id`) |
 
 ### Institutions
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `GET` | `/api/v1/openfinance/secure/institutions` | List available external banks |
+| Method | Path                                      | Purpose                       |
+| ------ | ----------------------------------------- | ----------------------------- |
+| `GET`  | `/api/v1/openfinance/secure/institutions` | List available external banks |
 
 ### External Data (Institution-Scoped)
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `GET` | `/api/v1/openfinance/secure/fetch-external-accounts-for-user-and-institution` | External accounts |
-| `GET` | `/api/v1/openfinance/secure/fetch-external-products-for-user-and-institution` | External products |
+| Method | Path                                                                          | Purpose           |
+| ------ | ----------------------------------------------------------------------------- | ----------------- |
+| `GET`  | `/api/v1/openfinance/secure/fetch-external-accounts-for-user-and-institution` | External accounts |
+| `GET`  | `/api/v1/openfinance/secure/fetch-external-products-for-user-and-institution` | External products |
 
 ### Leafy Bank Internal
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `GET` | `/api/v1/leafybank/accounts/secure/fetch-accounts-for-user` | Internal accounts |
-| `GET` | `/api/v1/leafybank/transactions/secure/get-transactions-for-user/{user}` | Internal transactions |
-| `GET` | `/api/v1/leafybank/transactions/secure/spending/{user}` | All spending transactions |
-| `GET` | `/api/v1/leafybank/customers/{user}/identification` | Customer identification |
-| `GET` | `/api/v1/leafybank/customers/{user}/repayment-history` | Repayment data |
-| `GET` | `/api/v1/leafybank/customers/{user}/credit-score` | Credit bureau score |
-| `GET` | `/api/v1/leafybank/products/secure/match` | Match loan products |
-| `GET` | `/api/v1/leafybank/spending/best-practices` | Spending category reference |
-| `GET` | `/api/v1/leafybank/portability/rules` | Underwriting rules |
-| `POST` | `/api/v1/leafybank/mcc/classify` | Vector Search MCC classification |
+| Method | Path                                                                     | Purpose                          |
+| ------ | ------------------------------------------------------------------------ | -------------------------------- |
+| `GET`  | `/api/v1/leafybank/accounts/secure/fetch-accounts-for-user`              | Internal accounts                |
+| `GET`  | `/api/v1/leafybank/transactions/secure/get-transactions-for-user/{user}` | Internal transactions            |
+| `GET`  | `/api/v1/leafybank/transactions/secure/spending/{user}`                  | All spending transactions        |
+| `GET`  | `/api/v1/leafybank/customers/{user}/identification`                      | Customer identification          |
+| `GET`  | `/api/v1/leafybank/customers/{user}/repayment-history`                   | Repayment data                   |
+| `GET`  | `/api/v1/leafybank/customers/{user}/credit-score`                        | Credit bureau score              |
+| `GET`  | `/api/v1/leafybank/products/secure/match`                                | Match loan products              |
+| `GET`  | `/api/v1/leafybank/spending/best-practices`                              | Spending category reference      |
+| `GET`  | `/api/v1/leafybank/portability/rules`                                    | Underwriting rules               |
+| `POST` | `/api/v1/leafybank/mcc/classify`                                         | Vector Search MCC classification |
 
 ### Demo & Debug
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| `GET` | `/api/v1/demo/profiles` | Available spending profiles and demo users |
-| `GET` | `/api/v1/encryption-demo/compare/{consent_id}` | QE decrypted vs raw binary comparison |
-| `GET` | `/api/v1/debug/*` | Raw database inspection (dev only) |
+| Method | Path                                           | Purpose                                    |
+| ------ | ---------------------------------------------- | ------------------------------------------ |
+| `GET`  | `/api/v1/demo/profiles`                        | Available spending profiles and demo users |
+| `GET`  | `/api/v1/encryption-demo/compare/{consent_id}` | QE decrypted vs raw binary comparison      |
+| `GET`  | `/api/v1/debug/*`                              | Raw database inspection (dev only)         |
 
 ## Core Capabilities
 
 ### Consent State Machine
 
 <!-- TODO: Add consent state machine diagram -->
+
 ![Consent State Machine](placeholder-consent-state-machine.png)
 
 Every consent follows a strict lifecycle:
@@ -381,15 +383,16 @@ AUTHORISED → REVOKED
 ### Queryable Encryption
 
 <!-- TODO: Add queryable encryption diagram -->
+
 ![Queryable Encryption](placeholder-queryable-encryption.png)
 
 Four consent fields are encrypted using MongoDB's Queryable Encryption:
 
-| Field | Query Type | Purpose |
-| ----- | ---------- | ------- |
-| `Consumer.UserName` | Equality | Look up consents by user |
-| `Consumer.UserId` | Equality | Look up consents by ID |
-| `Permissions` | None (encrypted only) | Protect permission details |
+| Field                               | Query Type            | Purpose                      |
+| ----------------------------------- | --------------------- | ---------------------------- |
+| `Consumer.UserName`                 | Equality              | Look up consents by user     |
+| `Consumer.UserId`                   | Equality              | Look up consents by ID       |
+| `Permissions`                       | None (encrypted only) | Protect permission details   |
 | `SourceInstitution.InstitutionName` | None (encrypted only) | Protect institution identity |
 
 The driver encrypts on write and decrypts on read — the Atlas server never sees plaintext. A local 96-byte master key protects the Data Encryption Keys (swap to AWS KMS for production).
@@ -397,6 +400,7 @@ The driver encrypts on write and decrypts on read — the Atlas server never see
 ### MCC Transaction Classification
 
 <!-- TODO: Add vector search classification diagram -->
+
 ![MCC Classification](placeholder-mcc-classification.png)
 
 External bank transactions often lack spending categories. The MCC classification service:
@@ -412,11 +416,11 @@ Results are ephemeral (not persisted) — classification happens on demand.
 
 Three demo profiles simulate different spending behaviors:
 
-| Profile | Description |
-| ------- | ----------- |
-| `overspender` | Excessive spending across categories |
-| `balanced` | Healthy spending within recommended ranges |
-| `saver` | Conservative spending, well below targets |
+| Profile       | Description                                |
+| ------------- | ------------------------------------------ |
+| `overspender` | Excessive spending across categories       |
+| `balanced`    | Healthy spending within recommended ranges |
+| `saver`       | Conservative spending, well below targets  |
 
 Profiles are baked into the database as tagged transactions. At query time, the service filters with `$or: [{Profile: {$exists: false}}, {Profile: selected_profile}]` — no load/clear mechanism needed.
 
