@@ -47,11 +47,29 @@ steps:
       event:
         - pull_request
 
-  - name: helm-validate-staging
-    image: alpine/helm:3.14.0
-    commands:
-      - helm repo add mongodb https://10gen.github.io/helm-charts
-      - helm template open-finance-next-gen mongodb/web-app --version 4.25.0 -f environment/staging.yaml --set image.repository=test --set image.tag=test
+  - name: helm-dry-run-staging
+    image: public.ecr.aws/kanopy/drone-helm:v3
+    settings:
+      dry_run: true
+      chart: mongodb/web-app
+      chart_version: 4.25.0
+      add_repos: [mongodb=https://10gen.github.io/helm-charts]
+      namespace: industrysolutions
+      release: open-finance-next-gen
+      values:
+        - "image.tag=test"
+        - "image.repository=test"
+        - "ingress.enabled=true"
+        - "ingress.hosts[0]=open-finance-next-gen.industrysolutions.staging.corp.mongodb.com"
+        - "mesh.enabled=true"
+        - "resources.limits.cpu=500m"
+        - "resources.limits.memory=512Mi"
+        - "resources.requests.cpu=100m"
+        - "resources.requests.memory=256Mi"
+      api_server: https://api.staging.corp.mongodb.com
+      kubernetes_token:
+        from_secret: stag_kub_pr_token
+      values_files: ["environment/staging.yaml"]
     when:
       event:
         - pull_request
@@ -108,7 +126,7 @@ steps:
       api_server: https://api.staging.corp.mongodb.com
       kubernetes_token:
         from_secret: staging_kubernetes_token ## set in drone web ui
-      values_files: [ "environment/staging.yaml" ]
+      values_files: ["environment/staging.yaml"]
     when:
       event:
         - push
@@ -120,7 +138,7 @@ name: production
 
 trigger:
   branch:
-    - main  # or master, depending on your main branch name
+    - main # or master, depending on your main branch name
   event:
     - push
 
@@ -165,7 +183,7 @@ steps:
       api_server: https://api.prod.corp.mongodb.com
       kubernetes_token:
         from_secret: prod_kubernetes_token
-      values_files: [ "environment/production.yaml" ]
+      values_files: ["environment/production.yaml"]
     when:
       event:
         - push
