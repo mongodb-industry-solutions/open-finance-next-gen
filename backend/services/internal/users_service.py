@@ -30,7 +30,7 @@ class UsersService:
             list[dict]: A list of all users in the collection.
         """
         # Retrieve all users from the collection
-        logger.info(f"Retrieving all users from the collection...")
+        logger.info("Retrieving all users from the collection...")
         users = list(self.users_collection.find())
         return users
 

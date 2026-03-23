@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import List, Dict
@@ -6,9 +6,8 @@ from bson import ObjectId
 import logging
 import json
 
-from dependencies import get_auth, get_bearer_token, get_mongo_connection
+from dependencies import get_mongo_connection
 from utils.security import sanitize_log_input
-from services.auth import Auth
 from services.internal.users_service import UsersService
 from encoder.json_encoder import MyJSONEncoder
 from pydantic import BaseModel

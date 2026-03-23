@@ -477,7 +477,7 @@ async def retrieve_external_account_for_user(
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

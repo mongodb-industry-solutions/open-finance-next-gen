@@ -20,7 +20,6 @@ from routers.leafy_bank.customers import secure as lb_customers_secure
 from routers.leafy_bank.spending import secure as lb_spending_secure
 from routers.leafy_bank.portability import secure as lb_portability_secure
 from routers.leafy_bank.mcc import secure as lb_mcc_secure
-from routers import debug as debug_router
 from routers import demo as demo_router
 from routers import encryption_demo as encryption_demo_router
 

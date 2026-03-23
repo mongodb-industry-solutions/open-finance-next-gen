@@ -11,6 +11,31 @@ trigger:
     - main
 
 steps:
+  - name: secret-scan
+    image: zricethezav/gitleaks:latest
+    commands:
+      - gitleaks detect --source . --verbose
+    when:
+      event:
+        - pull_request
+
+  - name: dependency-scan
+    image: aquasec/trivy:latest
+    commands:
+      - trivy fs --severity CRITICAL --exit-code 1 .
+    when:
+      event:
+        - pull_request
+
+  - name: lint
+    image: python:3.10-slim
+    commands:
+      - pip install ruff
+      - ruff check backend/
+    when:
+      event:
+        - pull_request
+
   - name: build-check
     image: plugins/kaniko-ecr
     settings:
@@ -22,14 +47,22 @@ steps:
       event:
         - pull_request
 
-  - name: helm-lint-staging
+  - name: helm-dry-run-staging
     image: public.ecr.aws/kanopy/drone-helm:v3
     settings:
-      mode: lint
+      dry_run: true
       chart: mongodb/web-app
       chart_version: 4.25.0
       add_repos: [mongodb=https://10gen.github.io/helm-charts]
-      values_files: [ "environment/staging.yaml" ]
+      namespace: industrysolutions
+      release: open-finance-next-gen
+      values:
+        - "image.tag=test"
+        - "image.repository=test"
+      api_server: https://api.staging.corp.mongodb.com
+      kubernetes_token:
+        from_secret: stag_kub_pr_token
+      values_files: ["environment/staging.yaml"]
     when:
       event:
         - pull_request
@@ -42,6 +75,8 @@ name: staging
 trigger:
   branch:
     - staging
+  event:
+    - push
 
 steps:
   - name: publish-backend
@@ -84,7 +119,7 @@ steps:
       api_server: https://api.staging.corp.mongodb.com
       kubernetes_token:
         from_secret: staging_kubernetes_token ## set in drone web ui
-      values_files: [ "environment/staging.yaml" ]
+      values_files: ["environment/staging.yaml"]
     when:
       event:
         - push
@@ -96,7 +131,9 @@ name: production
 
 trigger:
   branch:
-    - main  # or master, depending on your main branch name
+    - main # or master, depending on your main branch name
+  event:
+    - push
 
 steps:
   - name: publish-backend-prod
@@ -139,7 +176,7 @@ steps:
       api_server: https://api.prod.corp.mongodb.com
       kubernetes_token:
         from_secret: prod_kubernetes_token
-      values_files: [ "environment/production.yaml" ]
+      values_files: ["environment/production.yaml"]
     when:
       event:
         - push
