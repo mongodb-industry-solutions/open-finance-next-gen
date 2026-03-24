@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Response, Request
+from fastapi import APIRouter, HTTPException, Query, Response, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel
 import logging
 import json
@@ -52,18 +52,24 @@ class InstitutionResponse(BaseModel):
 @router.get("/", response_model=InstitutionListResponse)
 @limiter.limit("60/minute")
 async def list_institutions(
-    request: Request
+    request: Request,
+    user_id: Optional[str] = Query(None, description="Filter to institutions where this user has accounts"),
 ):
     """
-    List all available institutions in the Open Finance ecosystem.
-    Returns institutions that users can connect to for data sharing.
+    List institutions in the Open Finance ecosystem.
+
+    Without user_id: returns all institutions (for display).
+    With user_id: returns only institutions where the user has external accounts
+    (for validation before bank login).
 
     This is a Leafy Bank endpoint - user is already authenticated via session.
     No bearer token required.
     """
     try:
-        # No bearer token validation - user is already logged into Leafy Bank
-        institutions = institution_service.list_institutions()
+        if user_id:
+            institutions = institution_service.list_institutions_for_user(user_id)
+        else:
+            institutions = institution_service.list_institutions()
         return Response(
             content=json.dumps({"institutions": institutions}, cls=MyJSONEncoder),
             media_type="application/json"
