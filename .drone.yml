@@ -20,7 +20,7 @@ steps:
         - pull_request
 
   - name: dependency-scan
-    image: aquasec/trivy:latest
+    image: ghcr.io/aquasecurity/trivy:0.69.3
     commands:
       - trivy fs --severity CRITICAL --exit-code 1 .
     when:
