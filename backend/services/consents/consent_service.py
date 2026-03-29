@@ -93,6 +93,16 @@ class ConsentService:
     MIN_EXPIRATION_DAYS = 3    # Treated as minutes in demo (for DURATION_BASED)
     DEFAULT_EXPIRATION_DAYS = 6
 
+    # User-facing display durations (real days) by purpose
+    # These are shown to the user while the actual expiry uses demo minutes
+    DISPLAY_DURATION_DAYS = {
+        "PERSONAL_LOAN_PORTABILITY": 7,
+        "PAYROLL_LOAN_PORTABILITY": 7,
+        "VEHICLE_LOAN_PORTABILITY": 7,
+        "FINANCIAL_ADVICE": 14,
+        None: 7,  # general access
+    }
+
     def create_consent(
         self,
         consumer_user_name: str,
@@ -127,6 +137,9 @@ class ConsentService:
             ValueError: If purpose is invalid, permissions invalid, institution doesn't exist,
                         or expiration out of range.
         """
+        # Single timestamp for all datetime fields
+        now = datetime.now(timezone.utc)
+
         # Default expiration
         if expiration_days is None:
             expiration_days = self.DEFAULT_EXPIRATION_DAYS
@@ -151,7 +164,7 @@ class ConsentService:
                     f"Consent duration must be at least {self.MIN_EXPIRATION_DAYS}. "
                     f"Requested: {expiration_days}."
                 )
-            expiration = datetime.now(timezone.utc) + timedelta(minutes=expiration_days)
+            expiration = now + timedelta(minutes=expiration_days)
 
         # Validate purpose (None is allowed for general access)
         validate_purpose(purpose)
@@ -183,9 +196,6 @@ class ConsentService:
         # Generate consent ID
         consent_id = self._generate_consent_id(source_institution_name)
 
-        # Calculate timestamps
-        now = datetime.now(timezone.utc)
-
         # Build the consent document
         consent_document = {
             "ConsentId": consent_id,
@@ -215,6 +225,10 @@ class ConsentService:
         # Only add ExpirationDateTime for DURATION_BASED consents
         if expiration:
             consent_document["ExpirationDateTime"] = expiration
+            # Display expiration: creation + real days (for user-facing display)
+            # The actual ExpirationDateTime uses demo minutes for quick expiry
+            display_days = self.DISPLAY_DURATION_DAYS.get(purpose, 7)
+            consent_document["DisplayExpirationDateTime"] = now + timedelta(days=display_days)
 
         # Insert the document
         self.consents_collection.insert_one(consent_document)
