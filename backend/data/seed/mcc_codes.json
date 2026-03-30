@@ -1,0 +1,394 @@
+[
+  {
+    "MCC": "6513",
+    "MCCDescription": "Real estate agents and managers, rent payments and property management",
+    "CategoryId": "housing",
+    "CategoryName": "Housing",
+    "Keywords": ["rent", "lease", "apartment", "housing", "property", "landlord", "tenant", "mortgage"],
+    "EmbeddingText": "Real estate agents and managers rent payments and property management. rent lease apartment housing property landlord tenant mortgage"
+  },
+  {
+    "MCC": "1520",
+    "MCCDescription": "General contractors for residential building and renovation",
+    "CategoryId": "housing",
+    "CategoryName": "Housing",
+    "Keywords": ["contractor", "renovation", "remodel", "construction", "home improvement", "repair"],
+    "EmbeddingText": "General contractors for residential building and renovation. contractor renovation remodel construction home improvement repair"
+  },
+  {
+    "MCC": "5211",
+    "MCCDescription": "Lumber and building materials, hardware stores",
+    "CategoryId": "housing",
+    "CategoryName": "Housing",
+    "Keywords": ["hardware", "lumber", "home depot", "building materials", "tools", "home repair"],
+    "EmbeddingText": "Lumber and building materials hardware stores. hardware lumber home depot building materials tools home repair"
+  },
+  {
+    "MCC": "5712",
+    "MCCDescription": "Furniture, home furnishings and equipment stores",
+    "CategoryId": "housing",
+    "CategoryName": "Housing",
+    "Keywords": ["furniture", "sofa", "bed", "home furnishing", "ikea", "mattress", "decor"],
+    "EmbeddingText": "Furniture home furnishings and equipment stores. furniture sofa bed home furnishing ikea mattress decor"
+  },
+  {
+    "MCC": "5261",
+    "MCCDescription": "Lawn and garden supply stores, nurseries",
+    "CategoryId": "housing",
+    "CategoryName": "Housing",
+    "Keywords": ["garden", "lawn", "plants", "nursery", "landscaping", "yard"],
+    "EmbeddingText": "Lawn and garden supply stores nurseries. garden lawn plants nursery landscaping yard"
+  },
+  {
+    "MCC": "5411",
+    "MCCDescription": "Grocery stores, supermarkets, and food markets",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["grocery", "supermarket", "food", "produce", "pantry", "dairy", "meat", "bakery", "safeway", "trader joes", "aldi", "whole foods", "farmers market"],
+    "EmbeddingText": "Grocery stores supermarkets and food markets. grocery supermarket food produce pantry dairy meat bakery safeway trader joes aldi whole foods farmers market weekly shopping household essentials"
+  },
+  {
+    "MCC": "5812",
+    "MCCDescription": "Eating places, restaurants, and dining establishments",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["restaurant", "dining", "eating", "meal", "brunch", "dinner", "lunch", "cafe", "steakhouse", "bistro", "grill"],
+    "EmbeddingText": "Eating places restaurants and dining establishments. restaurant dining eating meal brunch dinner lunch cafe steakhouse bistro grill upscale casual fine dining"
+  },
+  {
+    "MCC": "5813",
+    "MCCDescription": "Bars, cocktail lounges, nightclubs, and drinking places",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["bar", "cocktail", "nightclub", "pub", "lounge", "drinks", "wine", "beer", "wine tasting", "vineyard"],
+    "EmbeddingText": "Bars cocktail lounges nightclubs and drinking places. bar cocktail nightclub pub lounge drinks wine beer wine tasting vineyard craft cocktails"
+  },
+  {
+    "MCC": "5814",
+    "MCCDescription": "Fast food restaurants, takeout, food delivery services",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["fast food", "takeout", "delivery", "doordash", "grubhub", "uber eats", "coffee", "starbucks", "pizza", "drive-through"],
+    "EmbeddingText": "Fast food restaurants takeout and food delivery services. fast food takeout delivery doordash grubhub uber eats coffee starbucks pizza drive-through late night food order"
+  },
+  {
+    "MCC": "5441",
+    "MCCDescription": "Candy, nut, and confectionery stores",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["candy", "chocolate", "confectionery", "sweets", "snacks"],
+    "EmbeddingText": "Candy nut and confectionery stores. candy chocolate confectionery sweets snacks treats"
+  },
+  {
+    "MCC": "5462",
+    "MCCDescription": "Bakeries and bread shops",
+    "CategoryId": "food_dining",
+    "CategoryName": "Food & Dining",
+    "Keywords": ["bakery", "bread", "pastry", "cake", "baked goods", "croissant"],
+    "EmbeddingText": "Bakeries and bread shops. bakery bread pastry cake baked goods croissant muffin"
+  },
+  {
+    "MCC": "5541",
+    "MCCDescription": "Gas stations, service stations, and fuel dealers",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["gas", "fuel", "gasoline", "petrol", "shell", "chevron", "exxon", "fill-up"],
+    "EmbeddingText": "Gas stations service stations and fuel dealers. gas fuel gasoline petrol shell chevron exxon fill-up commute driving"
+  },
+  {
+    "MCC": "4121",
+    "MCCDescription": "Taxi cabs, rideshare services, and limousines",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["taxi", "rideshare", "uber", "lyft", "cab", "ride", "limousine", "car service"],
+    "EmbeddingText": "Taxi cabs rideshare services and limousines. taxi rideshare uber lyft cab ride limousine car service"
+  },
+  {
+    "MCC": "4111",
+    "MCCDescription": "Local and suburban commuter transport, bus and rail transit",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["transit", "bus", "subway", "metro", "commuter", "rail", "public transport", "train", "light rail"],
+    "EmbeddingText": "Local and suburban commuter transport bus and rail transit. transit bus subway metro commuter rail public transport train light rail weekly pass daily commute"
+  },
+  {
+    "MCC": "7523",
+    "MCCDescription": "Parking lots, garages, and parking meters",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["parking", "garage", "meter", "valet", "parking lot"],
+    "EmbeddingText": "Parking lots garages and parking meters. parking garage meter valet parking lot"
+  },
+  {
+    "MCC": "7538",
+    "MCCDescription": "Auto service shops, non-dealer, vehicle repair and maintenance",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["auto repair", "mechanic", "oil change", "brake", "tire", "vehicle maintenance"],
+    "EmbeddingText": "Auto service shops non-dealer vehicle repair and maintenance. auto repair mechanic oil change brake tire vehicle maintenance"
+  },
+  {
+    "MCC": "7512",
+    "MCCDescription": "Car rental agencies",
+    "CategoryId": "transportation",
+    "CategoryName": "Transportation",
+    "Keywords": ["car rental", "rent a car", "hertz", "enterprise", "avis", "budget"],
+    "EmbeddingText": "Car rental agencies. car rental rent a car hertz enterprise avis budget vehicle rental"
+  },
+  {
+    "MCC": "4900",
+    "MCCDescription": "Utilities — electric, gas, water, and sanitary services",
+    "CategoryId": "utilities",
+    "CategoryName": "Utilities",
+    "Keywords": ["electric", "electricity", "gas", "water", "utility", "power", "energy", "sanitary"],
+    "EmbeddingText": "Utilities electric gas water and sanitary services. electric electricity gas water utility power energy sanitary monthly bill payment apartment house"
+  },
+  {
+    "MCC": "4814",
+    "MCCDescription": "Telephone and telecommunications services, mobile phone plans",
+    "CategoryId": "utilities",
+    "CategoryName": "Utilities",
+    "Keywords": ["phone", "telecom", "mobile", "wireless", "t-mobile", "verizon", "at&t", "mint mobile", "cell phone"],
+    "EmbeddingText": "Telephone and telecommunications services mobile phone plans. phone telecom mobile wireless t-mobile verizon att mint mobile cell phone monthly plan"
+  },
+  {
+    "MCC": "4899",
+    "MCCDescription": "Cable, satellite television, internet, and streaming services",
+    "CategoryId": "utilities",
+    "CategoryName": "Utilities",
+    "Keywords": ["cable", "internet", "satellite", "tv", "comcast", "spectrum", "fiber", "broadband", "wifi"],
+    "EmbeddingText": "Cable satellite television internet and streaming services. cable internet satellite tv comcast spectrum fiber broadband wifi monthly service payment"
+  },
+  {
+    "MCC": "4812",
+    "MCCDescription": "Telecommunication equipment and telephone sales",
+    "CategoryId": "utilities",
+    "CategoryName": "Utilities",
+    "Keywords": ["telecom equipment", "phone equipment", "modem", "router"],
+    "EmbeddingText": "Telecommunication equipment and telephone sales. telecom equipment phone equipment modem router"
+  },
+  {
+    "MCC": "8011",
+    "MCCDescription": "Doctors, physicians, and medical practitioners",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["doctor", "physician", "medical", "clinic", "checkup", "consultation", "primary care"],
+    "EmbeddingText": "Doctors physicians and medical practitioners. doctor physician medical clinic checkup consultation primary care office visit"
+  },
+  {
+    "MCC": "8021",
+    "MCCDescription": "Dentists and orthodontists",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["dentist", "dental", "orthodontist", "teeth", "cleaning", "cavity", "oral"],
+    "EmbeddingText": "Dentists and orthodontists. dentist dental orthodontist teeth cleaning cavity oral routine dental cleaning checkup preventive care"
+  },
+  {
+    "MCC": "5912",
+    "MCCDescription": "Pharmacies, drug stores, and prescription services",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["pharmacy", "drug store", "prescription", "medication", "cvs", "walgreens", "rite aid", "costco pharmacy"],
+    "EmbeddingText": "Pharmacies drug stores and prescription services. pharmacy drug store prescription medication cvs walgreens rite aid costco pharmacy refill maintenance medications"
+  },
+  {
+    "MCC": "8062",
+    "MCCDescription": "Hospitals and medical centers",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["hospital", "medical center", "emergency", "surgery", "inpatient"],
+    "EmbeddingText": "Hospitals and medical centers. hospital medical center emergency surgery inpatient"
+  },
+  {
+    "MCC": "8099",
+    "MCCDescription": "Health practitioners and medical services not elsewhere classified",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["health", "practitioner", "therapist", "chiropractor", "optometrist", "physical therapy"],
+    "EmbeddingText": "Health practitioners and medical services not elsewhere classified. health practitioner therapist chiropractor optometrist physical therapy"
+  },
+  {
+    "MCC": "7997",
+    "MCCDescription": "Health clubs, fitness centers, and gym memberships",
+    "CategoryId": "healthcare",
+    "CategoryName": "Healthcare",
+    "Keywords": ["gym", "fitness", "health club", "workout", "exercise", "24 hour fitness", "crossfit", "yoga", "membership"],
+    "EmbeddingText": "Health clubs fitness centers and gym memberships. gym fitness health club workout exercise 24 hour fitness crossfit yoga membership monthly fee classes equipment"
+  },
+  {
+    "MCC": "6300",
+    "MCCDescription": "Insurance underwriting and premiums",
+    "CategoryId": "insurance",
+    "CategoryName": "Insurance",
+    "Keywords": ["insurance", "premium", "coverage", "policy", "health insurance", "auto insurance", "life insurance", "state farm", "blue cross", "allstate"],
+    "EmbeddingText": "Insurance underwriting and premiums. insurance premium coverage policy health insurance auto insurance life insurance state farm blue cross allstate monthly payment comprehensive"
+  },
+  {
+    "MCC": "5960",
+    "MCCDescription": "Direct insurance marketing and sales",
+    "CategoryId": "insurance",
+    "CategoryName": "Insurance",
+    "Keywords": ["insurance sales", "direct insurance", "policy purchase"],
+    "EmbeddingText": "Direct insurance marketing and sales. insurance sales direct insurance policy purchase"
+  },
+  {
+    "MCC": "6399",
+    "MCCDescription": "Insurance services not elsewhere classified, supplemental insurance",
+    "CategoryId": "insurance",
+    "CategoryName": "Insurance",
+    "Keywords": ["supplemental insurance", "roadside assistance", "warranty", "protection plan"],
+    "EmbeddingText": "Insurance services not elsewhere classified supplemental insurance. supplemental insurance roadside assistance warranty protection plan"
+  },
+  {
+    "MCC": "6211",
+    "MCCDescription": "Securities, investments, brokerage, and financial planning",
+    "CategoryId": "savings",
+    "CategoryName": "Savings & Investments",
+    "Keywords": ["investment", "brokerage", "stocks", "mutual fund", "index fund", "fidelity", "vanguard", "schwab", "etf", "acorns", "retirement"],
+    "EmbeddingText": "Securities investments brokerage and financial planning. investment brokerage stocks mutual fund index fund fidelity vanguard schwab etf acorns retirement savings transfer contribution long-term growth"
+  },
+  {
+    "MCC": "6012",
+    "MCCDescription": "Savings institutions, credit unions, and savings accounts",
+    "CategoryId": "savings",
+    "CategoryName": "Savings & Investments",
+    "Keywords": ["savings", "credit union", "savings account", "deposit", "high-yield", "emergency fund"],
+    "EmbeddingText": "Savings institutions credit unions and savings accounts. savings credit union savings account deposit high-yield emergency fund automatic transfer safety net"
+  },
+  {
+    "MCC": "6010",
+    "MCCDescription": "Financial institutions, manual cash disbursements",
+    "CategoryId": "savings",
+    "CategoryName": "Savings & Investments",
+    "Keywords": ["bank", "financial institution", "cash", "deposit", "transfer"],
+    "EmbeddingText": "Financial institutions manual cash disbursements. bank financial institution cash deposit transfer"
+  },
+  {
+    "MCC": "7832",
+    "MCCDescription": "Motion picture theatres, cinemas",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["movie", "cinema", "theatre", "film", "imax", "amc", "regal", "cinemark"],
+    "EmbeddingText": "Motion picture theatres cinemas. movie cinema theatre film imax amc regal cinemark movie night premium tickets popcorn"
+  },
+  {
+    "MCC": "7922",
+    "MCCDescription": "Theatrical ticket agencies, concert and event tickets",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["tickets", "concert", "event", "ticketmaster", "stubhub", "live music", "broadway", "theater", "show", "arena"],
+    "EmbeddingText": "Theatrical ticket agencies concert and event tickets. tickets concert event ticketmaster stubhub live music broadway theater show arena premium seating"
+  },
+  {
+    "MCC": "7941",
+    "MCCDescription": "Athletic fields, sports clubs, and sports promoters",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["sports", "athletic", "game", "stadium", "match", "league"],
+    "EmbeddingText": "Athletic fields sports clubs and sports promoters. sports athletic game stadium match league"
+  },
+  {
+    "MCC": "5815",
+    "MCCDescription": "Digital goods, media, books, movies, music, and streaming subscriptions",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["digital", "streaming", "netflix", "spotify", "apple music", "kindle", "ebook", "subscription"],
+    "EmbeddingText": "Digital goods media books movies music and streaming subscriptions. digital streaming netflix spotify apple music kindle ebook subscription monthly"
+  },
+  {
+    "MCC": "7996",
+    "MCCDescription": "Amusement parks, carnivals, circuses, and recreation",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["amusement park", "theme park", "carnival", "recreation", "fun"],
+    "EmbeddingText": "Amusement parks carnivals circuses and recreation. amusement park theme park carnival recreation fun"
+  },
+  {
+    "MCC": "7298",
+    "MCCDescription": "Health and beauty spas, massage, and wellness services",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["spa", "massage", "wellness", "facial", "beauty", "relaxation", "treatment", "rejuvenating"],
+    "EmbeddingText": "Health and beauty spas massage and wellness services. spa massage wellness facial beauty relaxation treatment rejuvenating spa day deep tissue"
+  },
+  {
+    "MCC": "7999",
+    "MCCDescription": "Recreation services not elsewhere classified",
+    "CategoryId": "entertainment",
+    "CategoryName": "Entertainment",
+    "Keywords": ["recreation", "leisure", "activity", "entertainment", "fun"],
+    "EmbeddingText": "Recreation services not elsewhere classified. recreation leisure activity entertainment fun"
+  },
+  {
+    "MCC": "5311",
+    "MCCDescription": "Department stores, general merchandise",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["department store", "merchandise", "macy's", "target", "walmart", "kmart"],
+    "EmbeddingText": "Department stores general merchandise. department store merchandise macys target walmart kmart"
+  },
+  {
+    "MCC": "5691",
+    "MCCDescription": "Men's and women's clothing stores, fashion boutiques",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["clothing", "fashion", "apparel", "boutique", "nordstrom", "zara", "h&m", "designer", "wardrobe"],
+    "EmbeddingText": "Mens and womens clothing stores fashion boutiques. clothing fashion apparel boutique nordstrom zara hm designer wardrobe winter jacket accessories shopping spree"
+  },
+  {
+    "MCC": "5732",
+    "MCCDescription": "Electronics stores, computers, and technology retail",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["electronics", "computer", "tech", "best buy", "apple", "gadgets", "headphones", "phone accessories"],
+    "EmbeddingText": "Electronics stores computers and technology retail. electronics computer tech best buy apple gadgets headphones phone accessories wireless noise-cancelling tech gadgets"
+  },
+  {
+    "MCC": "5699",
+    "MCCDescription": "Miscellaneous apparel, accessories, and sportswear stores",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["apparel", "accessories", "sportswear", "nike", "adidas", "athletic", "shoes", "sneakers"],
+    "EmbeddingText": "Miscellaneous apparel accessories and sportswear stores. apparel accessories sportswear nike adidas athletic shoes sneakers running shoes premium sportswear collection"
+  },
+  {
+    "MCC": "5977",
+    "MCCDescription": "Cosmetics stores, beauty products, and skincare",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["cosmetics", "beauty", "skincare", "makeup", "sephora", "ulta", "anti-aging", "moisturizer"],
+    "EmbeddingText": "Cosmetics stores beauty products and skincare. cosmetics beauty skincare makeup sephora ulta anti-aging moisturizer luxury cosmetics serums"
+  },
+  {
+    "MCC": "5932",
+    "MCCDescription": "Used merchandise stores, thrift shops, and secondhand retail",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["thrift", "secondhand", "used", "goodwill", "salvation army", "consignment", "vintage"],
+    "EmbeddingText": "Used merchandise stores thrift shops and secondhand retail. thrift secondhand used goodwill salvation army consignment vintage budget-conscious wardrobe"
+  },
+  {
+    "MCC": "5942",
+    "MCCDescription": "Book stores, educational materials and publications",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["book", "bookstore", "library", "educational", "reading", "publication", "self-improvement"],
+    "EmbeddingText": "Book stores educational materials and publications. book bookstore library educational reading publication self-improvement"
+  },
+  {
+    "MCC": "5944",
+    "MCCDescription": "Jewelry stores, watches, clocks, and silverware",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["jewelry", "watch", "ring", "necklace", "bracelet", "diamond", "gold"],
+    "EmbeddingText": "Jewelry stores watches clocks and silverware. jewelry watch ring necklace bracelet diamond gold"
+  },
+  {
+    "MCC": "5945",
+    "MCCDescription": "Hobby, toy, and game shops",
+    "CategoryId": "shopping",
+    "CategoryName": "Shopping",
+    "Keywords": ["hobby", "toy", "game", "craft", "model", "collectible"],
+    "EmbeddingText": "Hobby toy and game shops. hobby toy game craft model collectible"
+  }
+]

@@ -1,0 +1,26 @@
+env:
+  NODE_ENV: prod
+  KMS_PROVIDER: aws
+  ENCRYPTION_CONFIG_PATH: /etc/encryption/encryption_config.json
+
+envSecrets:
+  MONGODB_URI: open-finance-consent
+  OPENFINANCE_DB_NAME: open-finance-consent
+  LEAFYBANK_DB_NAME: open-finance-consent
+  VOYAGE_API_KEY: open-finance-consent
+
+serviceAccount:
+  enabled: true
+  irsa:
+    accountId: "275662791714"
+    roleName: "kanopy-prod-cicd-irsa"
+
+extraVolumes:
+  - name: encryption-config
+    configMap:
+      name: encryption-config
+
+extraVolumeMounts:
+  - name: encryption-config
+    mountPath: /etc/encryption
+    readOnly: true

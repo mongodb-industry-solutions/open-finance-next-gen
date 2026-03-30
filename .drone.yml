@@ -1,0 +1,182 @@
+---
+kind: pipeline
+type: kubernetes
+name: validate-pr
+
+trigger:
+  event:
+    - pull_request
+  branch:
+    - staging
+    - main
+
+steps:
+  - name: secret-scan
+    image: zricethezav/gitleaks:latest
+    commands:
+      - gitleaks detect --source . --verbose
+    when:
+      event:
+        - pull_request
+
+  - name: dependency-scan
+    image: ghcr.io/aquasecurity/trivy:0.69.3
+    commands:
+      - trivy fs --severity CRITICAL --exit-code 1 .
+    when:
+      event:
+        - pull_request
+
+  - name: lint
+    image: python:3.10-slim
+    commands:
+      - pip install ruff
+      - ruff check backend/
+    when:
+      event:
+        - pull_request
+
+  - name: build-check
+    image: plugins/kaniko-ecr
+    settings:
+      no_push: true
+      registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com
+      repo: industrysolutions/open-finance-next-gen
+      dockerfile: Dockerfile.backend
+    when:
+      event:
+        - pull_request
+
+  - name: helm-dry-run-staging
+    image: public.ecr.aws/kanopy/drone-helm:v3
+    settings:
+      dry_run: true
+      chart: mongodb/web-app
+      chart_version: 4.25.0
+      add_repos: [mongodb=https://10gen.github.io/helm-charts]
+      namespace: industrysolutions
+      release: open-finance-next-gen
+      values:
+        - "image.tag=test"
+        - "image.repository=test"
+      api_server: https://api.staging.corp.mongodb.com
+      kubernetes_token:
+        from_secret: stag_kub_pr_token
+      values_files: ["environment/staging.yaml"]
+    when:
+      event:
+        - pull_request
+
+---
+kind: pipeline
+type: kubernetes
+name: staging
+
+trigger:
+  branch:
+    - staging
+  event:
+    - push
+
+steps:
+  - name: publish-backend
+    image: plugins/kaniko-ecr
+    settings:
+      create_repository: true
+      registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com ## keep same for all demos < - aws ecr registry used to store docker image
+      repo: industrysolutions/open-finance-next-gen ## NEED TO CHANGE - based on your demo name for eg.: financial-news-vector-search
+      tags:
+        - git-${DRONE_COMMIT_SHA:0:7}
+        - latest
+      dockerfile: Dockerfile.backend
+      access_key:
+        from_secret: ecr_access_key ## set in drone web ui
+      secret_key:
+        from_secret: ecr_secret_key ## set in drone web ui
+    when:
+      event:
+        - push
+
+  - name: deploy-backend-staging
+    image: public.ecr.aws/kanopy/drone-helm:v3
+    settings:
+      chart: mongodb/web-app
+      chart_version: 4.25.0
+      add_repos: [mongodb=https://10gen.github.io/helm-charts]
+      namespace: industrysolutions
+      release: open-finance-next-gen
+      values:
+        - "image.tag=git-${DRONE_COMMIT_SHA:0:7}"
+        - "image.repository=795250896452.dkr.ecr.us-east-1.amazonaws.com/industrysolutions/open-finance-next-gen"
+        - "ingress.enabled=true"
+        - "ingress.hosts[0]=open-finance-next-gen.industrysolutions.staging.corp.mongodb.com"
+        - "mesh.enabled=true"
+        # Backend resources (reduced defaults for demos - increase if OOMKilled)
+        - "resources.limits.cpu=500m"
+        - "resources.limits.memory=512Mi"
+        - "resources.requests.cpu=100m"
+        - "resources.requests.memory=256Mi"
+      api_server: https://api.staging.corp.mongodb.com
+      kubernetes_token:
+        from_secret: staging_kubernetes_token ## set in drone web ui
+      values_files: ["environment/staging.yaml"]
+    when:
+      event:
+        - push
+
+---
+kind: pipeline
+type: kubernetes
+name: production
+
+trigger:
+  branch:
+    - main # or master, depending on your main branch name
+  event:
+    - push
+
+steps:
+  - name: publish-backend-prod
+    image: plugins/kaniko-ecr
+    settings:
+      create_repository: true
+      registry: 795250896452.dkr.ecr.us-east-1.amazonaws.com # keep same for all demos < - aws ecr registry used to store docker image
+      repo: industrysolutions/open-finance-next-gen-prod
+      tags:
+        - git-${DRONE_COMMIT_SHA:0:7}-prod
+        - prod-latest
+      dockerfile: Dockerfile.backend
+      access_key:
+        from_secret: ecr_access_key
+      secret_key:
+        from_secret: ecr_secret_key
+    when:
+      event:
+        - push
+
+  - name: deploy-backend-production
+    image: public.ecr.aws/kanopy/drone-helm:v3
+    settings:
+      chart: mongodb/web-app
+      chart_version: 4.25.0
+      add_repos: [mongodb=https://10gen.github.io/helm-charts]
+      namespace: industrysolutions
+      release: open-finance-next-gen-prod
+      values:
+        - "image.tag=git-${DRONE_COMMIT_SHA:0:7}-prod"
+        - "image.repository=795250896452.dkr.ecr.us-east-1.amazonaws.com/industrysolutions/open-finance-next-gen-prod"
+        - "ingress.enabled=true"
+        - "ingress.hosts[0]=open-finance-next-gen.industrysolutions.prod.corp.mongodb.com"
+        - "mesh.enabled=true"
+        # Backend resources (production - slightly higher for reliability)
+        - "resources.limits.cpu=500m"
+        - "resources.limits.memory=512Mi"
+        - "resources.requests.cpu=150m"
+        - "resources.requests.memory=256Mi"
+      api_server: https://api.prod.corp.mongodb.com
+      kubernetes_token:
+        from_secret: prod_kubernetes_token
+      values_files: ["environment/production.yaml"]
+    when:
+      event:
+        - push

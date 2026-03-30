@@ -1,35 +1,8 @@
 # Kanopy
 knowledge_base_kanopy/
-
-# Security checks
-security_check.sh
-SECURITY_CHECK_README.md
-
-# Kanopy
-
-./KANOPY_DEPLOYMENT_README.md
-.drone-multicontainer-pods.yml
-.drone-seperate-pods.yml
-
-# claude
-**/.claude
-
-# task-def.json
-**/task-def.json
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Config
-**/config.yml
-**/config.yaml
-
+scripts/
+.augment/
+_state.md
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -37,6 +10,20 @@ __pycache__/
 
 # C extensions
 *.so
+
+# Cache files
+.cache/
+.ruff_cache/
+
+# Config YAML
+backend/config.yaml
+
+# Mac
+.DS_Store
+
+# Docker
+docker-compose-ecs.yml
+ecs-params.yml
 
 # Distribution / packaging
 .Python
@@ -46,6 +33,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+lib/
 lib64/
 parts/
 sdist/
@@ -142,10 +130,6 @@ ipython_config.py
 .pdm-python
 .pdm-build/
 
-# uv
-backend/.uv-cache
-.uv-cache
-
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
@@ -196,41 +180,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# ===== FRONTEND (Next.js/Node.js) =====
-# Dependencies
-frontend/node_modules
-frontend/.pnp
-frontend/.pnp.*
-frontend/.yarn/*
-!frontend/.yarn/patches
-!frontend/.yarn/plugins
-!frontend/.yarn/releases
-!frontend/.yarn/versions
-
-# Testing
-frontend/coverage
-
-# Next.js
-frontend/.next/
-frontend/out/
-
-# Production builds
-frontend/build
-
-# Debug logs
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-
-# Environment files
-frontend/.env*
-
-# Vercel
-frontend/.vercel
-
-# TypeScript
-frontend/*.tsbuildinfo
-frontend/next-env.d.ts
-
-# Misc
-*.pem
+# VSCode
+.vscode/
+notes.md
+security_check.sh
+backend/master-key.bin
+backend/encryption_config.json
+setup-hooks.sh
