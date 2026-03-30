@@ -40,7 +40,7 @@ async def get_authorization(
 
     # Provide additional logging for better debugging
     logger.info(
-        f"Trying to find user document by UserName: {user_identifier}")
+        "Trying to find user document by UserName: %s", sanitize_log_input(user_identifier))
 
     # If the user_identifier looks like an ObjectId, check both UserName and _id
     if ObjectId.is_valid(user_identifier):
@@ -52,7 +52,7 @@ async def get_authorization(
     try:
         user_document = tokens_collection.find_one(query)
         if not user_document:
-            logger.warning(f"User identifier {sanitize_log_input(user_identifier)} not found.")
+            logger.warning("User identifier %s not found.", sanitize_log_input(user_identifier))
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Prepare the response data
@@ -63,11 +63,11 @@ async def get_authorization(
         }
 
         logger.info(
-            f"User document for {user_identifier} retrieved successfully.")
+            "User document for %s retrieved successfully.", sanitize_log_input(user_identifier))
         return response_data
 
     except Exception as e:
-        logger.error(f"Error retrieving user document: {str(e)}")
+        logger.error("Error retrieving user document: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

@@ -109,7 +109,7 @@ async def fetch_accounts_for_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logger.info(f"Fetching accounts for user: {sanitize_log_input(user_identifier)}")
+        logger.info("Fetching accounts for user: %s", sanitize_log_input(user_identifier))
 
         if ObjectId.is_valid(user_identifier):
             user_identifier = ObjectId(user_identifier)
@@ -120,7 +120,7 @@ async def fetch_accounts_for_user(
     except HTTPException as he:
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
-        logger.error(f"Error fetching accounts for user: {str(e)}")
+        logger.error("Error fetching accounts for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 

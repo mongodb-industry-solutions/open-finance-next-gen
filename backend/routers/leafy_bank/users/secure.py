@@ -97,7 +97,7 @@ async def find_user(
         # No bearer token validation - user is already logged into Leafy Bank
         user_identifier = user_data.user_identifier
 
-        logger.info(f"Finding user: {sanitize_log_input(user_identifier)}")
+        logger.info("Finding user: %s", sanitize_log_input(user_identifier))
 
         # Convert string-based ObjectId to a valid ObjectId, if applicable
         if ObjectId.is_valid(user_identifier):
@@ -105,12 +105,12 @@ async def find_user(
 
         user = users_service.get_user(user_identifier)
         if not user:
-            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
+            logger.error("User with identifier %s not found.", sanitize_log_input(user_identifier))
             raise HTTPException(status_code=404, detail="User not found.")
 
         return Response(content=json.dumps({"user": user}, cls=MyJSONEncoder), media_type="application/json")
     except HTTPException as he:
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
-        logger.error(f"Error finding user: {str(e)}")
+        logger.error("Error finding user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")

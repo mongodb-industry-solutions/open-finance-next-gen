@@ -15,6 +15,7 @@ from services.aggregations.product_aggregations import ProductAggregations
 from services.consents.consent_validator import ConsentValidator
 
 from encoder.json_encoder import MyJSONEncoder
+from utils.security import sanitize_log_input
 
 import json
 import logging
@@ -106,7 +107,7 @@ async def fetch_external_accounts_for_user_and_institution(
     """Get external accounts for a specific user and institution. Requires valid consent with ACCOUNTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
     if user_auth['UserName'] != user_identifier and str(user_auth['_id']) != user_identifier:
         raise HTTPException(
             status_code=403, detail="Unauthorized: The Bearer Token does not belong to the user_identifier.")
@@ -127,7 +128,7 @@ async def fetch_external_accounts_for_user_and_institution(
             user_identifier = ObjectId(user_identifier)
         accounts = external_accounts_service.get_external_accounts_for_user_and_institution(user_identifier, institution_name)
         logger.info(
-            f"Found {len(accounts)} external accounts for user {user_identifier} at institution {institution_name}")
+            "Found %d external accounts for user %s at institution %s", len(accounts), sanitize_log_input(user_identifier), sanitize_log_input(institution_name))
 
         # Record access and consume one-time consents
         consent_validator.record_data_access(consent_id, "EXTERNAL_ACCOUNTS")
@@ -135,12 +136,12 @@ async def fetch_external_accounts_for_user_and_institution(
 
         return Response(content=json.dumps({"accounts": accounts}, cls=MyJSONEncoder), media_type="application/json")
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error retrieving external accounts for user: {str(e)}")
+        logger.error("Error retrieving external accounts for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -157,7 +158,7 @@ async def fetch_external_products_for_user_and_institution(
     """Get external financial products for a specific user and institution. Requires valid consent with LOANS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
     if user_auth['UserName'] != user_identifier and str(user_auth['_id']) != user_identifier:
         raise HTTPException(
             status_code=403, detail="Unauthorized: The Bearer Token does not belong to the user_identifier.")
@@ -178,7 +179,7 @@ async def fetch_external_products_for_user_and_institution(
             user_identifier = ObjectId(user_identifier)
         products = external_products_service.get_external_products_for_user_and_institution(user_identifier, institution_name)
         logger.info(
-            f"Found {len(products)} external products for user {user_identifier} at institution {institution_name}")
+            "Found %d external products for user %s at institution %s", len(products), sanitize_log_input(user_identifier), sanitize_log_input(institution_name))
 
         # Record access and consume one-time consents
         consent_validator.record_data_access(consent_id, "EXTERNAL_PRODUCTS")
@@ -186,12 +187,12 @@ async def fetch_external_products_for_user_and_institution(
 
         return Response(content=json.dumps({"products": products}, cls=MyJSONEncoder), media_type="application/json")
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error retrieving external products for user: {str(e)}")
+        logger.error("Error retrieving external products for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -207,7 +208,7 @@ async def fetch_all_external_accounts_for_user(
     """Get external accounts for a specific user, scoped to the consented institution. Requires valid consent with ACCOUNTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
     if user_auth['UserName'] != user_identifier and str(user_auth['_id']) != user_identifier:
         raise HTTPException(
             status_code=403, detail="Unauthorized: The Bearer Token does not belong to the user_identifier.")
@@ -225,7 +226,7 @@ async def fetch_all_external_accounts_for_user(
         # Scope results to the consented institution only
         accounts = external_accounts_service.get_external_accounts_for_user_and_institution(user_identifier, source_institution)
         logger.info(
-            f"Found {len(accounts)} external accounts for user {user_identifier} at consented institution {source_institution}")
+            "Found %d external accounts for user %s at consented institution %s", len(accounts), sanitize_log_input(user_identifier), sanitize_log_input(source_institution))
 
         # Record access and consume one-time consents
         consent_validator.record_data_access(consent_id, "EXTERNAL_ACCOUNTS")
@@ -233,13 +234,13 @@ async def fetch_all_external_accounts_for_user(
 
         return Response(content=json.dumps({"accounts": accounts}, cls=MyJSONEncoder), media_type="application/json")
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
         logger.error(
-            f"Error retrieving all external accounts for user: {str(e)}")
+            "Error retrieving all external accounts for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -255,7 +256,7 @@ async def fetch_all_external_products_for_user(
     """Get external financial products for a specific user, scoped to the consented institution. Requires valid consent with LOANS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
     if user_auth['UserName'] != user_identifier and str(user_auth['_id']) != user_identifier:
         raise HTTPException(
             status_code=403, detail="Unauthorized: The Bearer Token does not belong to the user_identifier.")
@@ -273,7 +274,7 @@ async def fetch_all_external_products_for_user(
         # Scope results to the consented institution only
         products = external_products_service.get_external_products_for_user_and_institution(user_identifier, source_institution)
         logger.info(
-            f"Found {len(products)} external products for user {user_identifier} at consented institution {source_institution}")
+            "Found %d external products for user %s at consented institution %s", len(products), sanitize_log_input(user_identifier), sanitize_log_input(source_institution))
 
         # Record access and consume one-time consents
         consent_validator.record_data_access(consent_id, "EXTERNAL_PRODUCTS")
@@ -281,13 +282,13 @@ async def fetch_all_external_products_for_user(
 
         return Response(content=json.dumps({"products": products}, cls=MyJSONEncoder), media_type="application/json")
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
         logger.error(
-            f"Error retrieving all external products for user: {str(e)}")
+            "Error retrieving all external products for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -320,7 +321,7 @@ async def calculate_total_balance_for_user(
             detail="Unauthorized: User ID does not match the authenticated user.",
         )
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}, UserId: {user_auth['_id']}"
+        "Authenticated User: UserName: %s, UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id'])
     )
     try:
         # Validate consent
@@ -329,7 +330,7 @@ async def calculate_total_balance_for_user(
         )
 
         logger.info(
-            f"Calculating total balance for user_id: {total_balance_request.user_id}"
+            "Calculating total balance for user_id: %s", sanitize_log_input(total_balance_request.user_id)
         )
         # Call the `get_user_account_balances` method to get the total balance
         balance_data = account_aggr_service.get_user_account_balances(
@@ -347,12 +348,12 @@ async def calculate_total_balance_for_user(
             media_type="application/json",
         )
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error calculating total balance for user: {str(e)}")
+        logger.error("Error calculating total balance for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -385,7 +386,7 @@ async def calculate_total_debt_for_user(
             detail="Unauthorized: User ID does not match the authenticated user."
         )
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}, UserId: {user_auth['_id']}"
+        "Authenticated User: UserName: %s, UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id'])
     )
     try:
         # Validate consent
@@ -394,7 +395,7 @@ async def calculate_total_debt_for_user(
         )
 
         logger.info(
-            f"Calculating total debt for user_id: {total_debt_request.user_id} with connected products: {total_debt_request.connected_external_products}"
+            "Calculating total debt for user_id: %s with connected products: %s", sanitize_log_input(total_debt_request.user_id), sanitize_log_input(total_debt_request.connected_external_products)
         )
         # Call the `get_user_total_debt` method to get the total debt
         debt_data = product_aggr_service.get_user_total_debt(
@@ -412,12 +413,12 @@ async def calculate_total_debt_for_user(
             media_type="application/json"
         )
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error calculating total debt for user: {str(e)}")
+        logger.error("Error calculating total debt for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -440,7 +441,7 @@ async def retrieve_external_account_for_user(
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
 
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
 
     # Validation: Both conditions must match
     if user_auth['UserName'] != account_data.user_name or str(user_auth['_id']) != account_data.user_id:
@@ -473,7 +474,7 @@ async def retrieve_external_account_for_user(
 
         return {"message": f"External account retrieved for {account_data.user_name}.", "account_id": str(account_id)}
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
@@ -500,7 +501,7 @@ async def retrieve_external_product_for_user(
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
 
     logger.info(
-        f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}"
+        "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id'])
     )
 
     # Validation: Ensure the provided user matches the authenticated user
@@ -539,10 +540,10 @@ async def retrieve_external_product_for_user(
             "product_id": str(product_id)
         }
     except ValueError as ve:
-        logger.error(f"Consent validation error: {str(ve)}")
+        logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error retrieving external financial product: {str(e)}")
+        logger.error("Error retrieving external financial product: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")

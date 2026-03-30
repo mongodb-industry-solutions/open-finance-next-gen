@@ -68,7 +68,7 @@ async def fetch_recent_transactions_for_user(
             raise HTTPException(
                 status_code=400, detail="User identifier is required.")
 
-        logger.info(f"Fetching recent transactions for user: {sanitize_log_input(user_identifier)}")
+        logger.info("Fetching recent transactions for user: %s", sanitize_log_input(user_identifier))
 
         # If `user_identifier` is an ObjectId-like string, convert it to ObjectId
         if ObjectId.is_valid(user_identifier):
@@ -76,7 +76,7 @@ async def fetch_recent_transactions_for_user(
 
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
+            logger.error("User with identifier %s not found.", sanitize_log_input(user_identifier))
             raise HTTPException(status_code=404, detail="User not found.")
 
         # Retrieve recent transactions for the valid user
@@ -85,10 +85,10 @@ async def fetch_recent_transactions_for_user(
 
         if transactions:
             logger.info(
-                f"Found {len(transactions)} recent transactions for user {user_identifier}.")
+                "Found %d recent transactions for user %s.", len(transactions), sanitize_log_input(user_identifier))
         else:
             logger.info(
-                f"No recent transactions found for user {user_identifier}.")
+                "No recent transactions found for user %s.", sanitize_log_input(user_identifier))
 
         return Response(
             content=json.dumps(
@@ -100,7 +100,7 @@ async def fetch_recent_transactions_for_user(
         raise he  # Propagate pre-raised HTTPException
     except Exception as e:
         logger.error(
-            f"Error retrieving recent transactions for user: {str(e)}")
+            "Error retrieving recent transactions for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -132,7 +132,7 @@ async def get_spending_transactions(
     try:
         # Validate if the user exists
         if not transactions_service.is_valid_user(user_identifier):
-            logger.error(f"User with identifier {sanitize_log_input(user_identifier)} not found.")
+            logger.error("User with identifier %s not found.", sanitize_log_input(user_identifier))
             raise HTTPException(status_code=404, detail="User not found.")
 
         transactions = transactions_service.get_all_transactions_for_user(user_identifier)
@@ -149,5 +149,5 @@ async def get_spending_transactions(
         raise he
     except Exception as e:
         logger.error(
-            f"Error retrieving spending transactions for user {user_identifier}: {str(e)}")
+            "Error retrieving spending transactions for user %s: %s", sanitize_log_input(user_identifier), sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
