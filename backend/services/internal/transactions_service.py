@@ -7,6 +7,19 @@ from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
 
+# ISO 20022 account type mapping
+_ACCT_TYPE_MAP = {
+    "Checking": "CACC",
+    "Savings": "SVGS",
+    "CreditCard": "CARD",
+}
+
+# BkTxCd family mapping by transaction type
+_BKTXCD_MAP = {
+    "AccountTransfer": {"Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "BOOK"},
+    "DigitalPayment":  {"Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "BOOK"},
+}
+
 
 class TransactionsService:
     """This class provides methods to perform transactions in the database."""
@@ -23,7 +36,7 @@ class TransactionsService:
         """
         self.db = connection.get_database(db_name)
         self.accounts_collection = self.db['accounts']
-        self.transactions_collection = self.db['transactions']
+        self.transactions_collection = self.db['internal_transactions']
         self.users_collection = self.db['users']
         self.notifications_collection = self.db['notifications']
 
@@ -57,14 +70,13 @@ class TransactionsService:
         """
         transactions = list(self.transactions_collection.find({
             "$or": [
-                {"TransactionReferenceData.TransactionSender.UserName": user_name},
-                {"TransactionReferenceData.TransactionReceiver.UserName": user_name}
+                {"Dbtr.Nm": user_name},
+                {"Cdtr.Nm": user_name}
             ]
         }))
 
-        # Sort by most recent transaction date
-        transactions.sort(key=lambda x: max(
-            date["TransactionDate"] for date in x["TransactionDates"]), reverse=True)
+        # Sort by booking date descending
+        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min), reverse=True)
 
         logger.info(f"Retrieved {len(transactions)} total transactions for user {user_name}")
         return transactions
@@ -95,9 +107,8 @@ class TransactionsService:
         # Fetching the transaction details from the transactions collection
         transactions = list(self.transactions_collection.find(
             {"_id": {"$in": transaction_ids}}))
-        # Sorting the transactions by the most recent date in the TransactionDates array
-        transactions.sort(key=lambda x: max(
-            date["TransactionDate"] for date in x["TransactionDates"]), reverse=True)
+        # Sort by booking date descending
+        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min), reverse=True)
         return transactions
 
     def perform_transaction(self, account_id_receiver: str, account_id_sender: str,
@@ -207,43 +218,48 @@ class TransactionsService:
             if sender_user_name == receiver_user_name and sender_account_number != receiver_account_number:
                 transaction_internal = True
 
+            now = datetime.now(timezone.utc)
+
             transaction = {
-                "TransactionAmount": transaction_amount,
-                "TransactionDescription": transaction_description,
-                "TransactionDetails": {
-                    "TransactionType": transaction_type,
-                    "TransactionInternal": transaction_internal,
+                "Acct": {
+                    "Id": sender_account_number,
+                    "Tp": _ACCT_TYPE_MAP.get(sender_account_type, "CACC"),
+                    "Svcr": "Leafy Bank",
                 },
-                "TransactionReferenceData": {
-                    "TransactionSender": {
-                        "UserId": ObjectId(sender_user_id),
-                        "UserName": sender_user_name,
-                        "AccountId": ObjectId(account_id_sender),
-                        "AccountNumber": sender_account_number,
-                        "AccountType": sender_account_type,
-                    },
-                    "TransactionReceiver": {
-                        "UserId": ObjectId(receiver_user_id),
-                        "UserName": receiver_user_name,
-                        "AccountId": ObjectId(account_id_receiver),
-                        "AccountNumber": receiver_account_number,
-                        "AccountType": receiver_account_type,
+                "Dbtr": {
+                    "Nm": sender_user_name,
+                    "Id": ObjectId(sender_user_id),
+                    "Acct": {
+                        "Id": ObjectId(account_id_sender),
+                        "Tp": _ACCT_TYPE_MAP.get(sender_account_type, "CACC"),
                     },
                 },
-                "TransactionDates": [
-                    {
-                        "TransactionDate": datetime.now(timezone.utc),
-                        "TransactionDateType": "TransactionInitiatedDate",
-                    }
-                ],
-                "TransactionStatus": "Initiated",
-                "TransactionCompleted": False,
-                "TransactionNotified": False,
+                "Cdtr": {
+                    "Nm": receiver_user_name,
+                    "Id": ObjectId(receiver_user_id),
+                    "Acct": {
+                        "Id": ObjectId(account_id_receiver),
+                        "Tp": _ACCT_TYPE_MAP.get(receiver_account_type, "CACC"),
+                    },
+                },
+                "Amt": {"value": transaction_amount, "Ccy": "USD"},
+                "CdtDbtInd": "DBIT",
+                "Sts": "PDNG",
+                "BookgDt": now,
+                "ValDt": now,
+                "AddtlNtryInf": transaction_description,
+                "BkTxCd": _BKTXCD_MAP.get(transaction_type, {"Domn": "PMNT", "Fmly": "OTHR", "SubFmly": "OTHR"}),
+                "Refs": {
+                    "EndToEndId": f"{transaction_type[:3].upper()}{str(ObjectId())[-6:].upper()}",
+                    "AcctSvcrRef": f"LB-{str(ObjectId())[-12:].upper()}",
+                },
+                "IntrnlTxn": transaction_internal,
+                "TxTp": transaction_type,
             }
 
             # Add payment method if it's a DigitalPayment
             if transaction_type == "DigitalPayment" and payment_method:
-                transaction["TransactionDetails"]["TransactionPaymentMethod"] = payment_method
+                transaction["PmtMtd"] = payment_method
 
             # Update sender account: subtract transaction amount from balance
             sender_result = self.accounts_collection.find_one_and_update(
@@ -264,23 +280,17 @@ class TransactionsService:
                 return_document=True
             )
 
-            # Add new transaction to 'transactions' collection
+            # Add new transaction to 'internal_transactions' collection
             transaction_id = self.transactions_collection.insert_one(
                 transaction, session=session).inserted_id
 
-            # Update the transaction document with the completed date and status
+            # Update the transaction document with the completed status (ISO 20022)
             self.transactions_collection.update_one(
                 {"_id": transaction_id},
                 {
                     "$set": {
-                        "TransactionStatus": "Completed",
-                        "TransactionCompleted": True
-                    },
-                    "$push": {
-                        "TransactionDates": {
-                            "TransactionDate": datetime.now(timezone.utc),
-                            "TransactionDateType": "TransactionCompletedDate"
-                        }
+                        "Sts": "BOOK",
+                        "ValDt": datetime.now(timezone.utc),
                     }
                 },
                 session=session
@@ -414,19 +424,12 @@ class TransactionsService:
                     }
                 self.notifications_collection.insert_many([sender_notification, receiver_notification], session=session)
 
-            # Update the transaction document with the notified date, status, and notification flag
+            # Update the transaction document with the notification date (ISO 20022)
             self.transactions_collection.update_one(
                 {"_id": transaction_id},
                 {
                     "$set": {
-                        "TransactionStatus": "Notified",
-                        "TransactionNotified": True
-                    },
-                    "$push": {
-                        "TransactionDates": {
-                            "TransactionDate": datetime.now(timezone.utc),
-                            "TransactionDateType": "TransactionNotifiedDate"
-                        }
+                        "NtfctnDt": datetime.now(timezone.utc),
                     }
                 },
                 session=session
