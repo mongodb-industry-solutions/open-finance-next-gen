@@ -76,7 +76,7 @@ class TransactionsService:
         }))
 
         # Sort by booking date descending
-        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min), reverse=True)
+        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
 
         logger.info(f"Retrieved {len(transactions)} total transactions for user {user_name}")
         return transactions
@@ -108,7 +108,7 @@ class TransactionsService:
         transactions = list(self.transactions_collection.find(
             {"_id": {"$in": transaction_ids}}))
         # Sort by booking date descending
-        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min), reverse=True)
+        transactions.sort(key=lambda x: x.get("BookgDt", datetime.min.replace(tzinfo=timezone.utc)), reverse=True)
         return transactions
 
     def perform_transaction(self, account_id_receiver: str, account_id_sender: str,
@@ -258,7 +258,7 @@ class TransactionsService:
             }
 
             # Add payment method if it's a DigitalPayment
-            if transaction_type == "DigitalPayment" and payment_method:
+            if transaction_type == "DigitalPayment" and payment_method and payment_method != "N/A":
                 transaction["PmtMtd"] = payment_method
 
             # Update sender account: subtract transaction amount from balance
