@@ -27,7 +27,10 @@ class MCCClassificationService:
             collection_name: Collection name (mcc_codes).
         """
         self.collection = connection.get_collection(db_name, collection_name)
-        self.vo = voyageai.Client()
+        self.vo = voyageai.Client(
+            max_retries=3,  # exponential backoff with jitter on 429/5xx
+            timeout=15.0,   # seconds — prevents indefinite hangs
+        )
         self.model = "voyage-finance-2"
         self.index_name = "mcc_codes_vector_index"
 
