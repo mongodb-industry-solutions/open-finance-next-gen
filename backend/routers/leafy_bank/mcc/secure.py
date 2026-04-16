@@ -64,7 +64,7 @@ class MCCCodesResponse(BaseModel):
 
 @router.post("/classify", response_model=ClassifyResponse)
 @limiter.limit("60/minute")
-async def classify_transactions(request: Request, body: ClassifyRequest):
+def classify_transactions(request: Request, body: ClassifyRequest):
     """
     Classify untagged transactions by MCC code via Atlas Vector Search.
 
