@@ -2,6 +2,14 @@
 
 Demonstrates how MongoDB Atlas powers secure Open Finance data exchange — consent management with Queryable Encryption, dual-database architecture for internal and external bank data, and Atlas Vector Search for real-time transaction classification.
 
+> **This is one of three interconnected repositories that make up the Leafy Bank Open Finance solution:**
+>
+> | Repository | Description | Port |
+> |------------|-------------|------|
+> | **open-finance-next-gen** (this repo) | FastAPI backend — consents, accounts, transactions, Queryable Encryption | 8003 |
+> | [leafy-bank-backend-openfinance-reactagent-chatbot](https://github.com/mongodb-industry-solutions/leafy-bank-backend-openfinance-reactagent-chatbot) | LangGraph multi-agent chatbot — consent flows, portability analysis, financial advice | 8080 |
+> | [open-finance-next-gen-ui](https://github.com/mongodb-industry-solutions/open-finance-next-gen-ui) | Next.js 15 frontend — dashboard, multi-bank views, AI assistant | 3000 |
+
 ## Where MongoDB Shines
 
 - **Queryable Encryption for Consent Privacy**: Sensitive consent fields (consumer identity, permissions, source institution) are encrypted at rest and in transit. MongoDB's Queryable Encryption enables equality queries on encrypted fields without ever exposing plaintext to the server — critical for regulatory compliance in financial services.
@@ -11,55 +19,7 @@ Demonstrates how MongoDB Atlas powers secure Open Finance data exchange — cons
 
 ## High-Level Architecture
 
-<!-- TODO: Add architecture diagram -->
-
-![Architecture Diagram](placeholder-architecture-diagram.png)
-
-```text
-┌─────────────────────────────────┐
-│  Chatbot / Frontend (React)     │
-└────────────┬────────────────────┘
-             │ HTTP (Bearer Token)
-             ▼
-┌─────────────────────────────────────────────┐
-│         FastAPI Backend (port 8003)          │
-├─────────────────────────────────────────────┤
-│  Rate Limiting (SlowAPI — 60 req/min)       │
-│  Bearer Token Authentication                │
-│  ┌────────────────┐  ┌───────────────────┐  │
-│  │ Open Finance   │  │ Leafy Bank        │  │
-│  │  Routers       │  │  Routers          │  │
-│  │  • public      │  │  • accounts       │  │
-│  │  • secure      │  │  • transactions   │  │
-│  │  • consents    │  │  • products       │  │
-│  │  • institutions│  │  • customers      │  │
-│  │  • customer    │  │  • spending       │  │
-│  │    _data       │  │  • portability    │  │
-│  └────────┬───────┘  │  • mcc            │  │
-│           │          └────────┬──────────┘  │
-│           ▼                   ▼             │
-│       Service Layer (Business Logic)        │
-│       • Consent State Machine (QE)          │
-│       • External Data Services              │
-│       • Internal Bank Services              │
-│       • MongoDB Aggregation Pipelines       │
-└────────────┬──────────────────┬─────────────┘
-             │                  │
-             ▼                  ▼
-┌────────────────────┐ ┌────────────────────┐
-│ open_finance_test  │ │ leafy_bank_test    │
-│  • encrypted_      │ │  • accounts        │
-│    consents (QE)   │ │  • users           │
-│  • tokens          │ │  • transactions    │
-│  • institutions    │ │  • products        │
-│  • external_       │ │  • mcc_codes       │
-│    accounts        │ │    (Vector Search) │
-│  • external_       │ │  • spending_best_  │
-│    products        │ │    practices       │
-│  • external_       │ │  • portability_    │
-│    transactions    │ │    rules           │
-└────────────────────┘ └────────────────────┘
-```
+![Architecture Diagram](architecture-diagram.png)
 
 ## Tech Stack
 
@@ -137,15 +97,16 @@ The demo requires seed data across two databases. Import the following collectio
 
 **Database: `open_finance_test`**
 
-| Collection                         | Purpose                                   |
-| ---------------------------------- | ----------------------------------------- |
-| `tokens`                           | Bearer token storage                      |
-| `institutions`                     | Available external banks                  |
-| `external_accounts`                | Account data from external institutions   |
-| `external_products`                | Loans/credit products from external banks |
-| `external_transactions_test`       | ISO 20022-aligned transaction data        |
-| `external_repayment_history`       | Repayment data for portability            |
-| `external_customer_identification` | Customer identity matching                |
+| Collection                         | Purpose                                          |
+| ---------------------------------- | ------------------------------------------------ |
+| `tokens`                           | Bearer token storage                             |
+| `institutions`                     | Available external banks                         |
+| `encrypted_consents`               | Queryable Encrypted consent records              |
+| `external_accounts`                | Account data from external institutions          |
+| `external_products`                | Loans/credit products from external banks        |
+| `external_transactions_test`       | ISO 20022-aligned transaction data               |
+| `external_repayment_history`       | Repayment data for portability                   |
+| `external_customer_identification` | Customer identity matching                       |
 
 **Database: `leafy_bank_test`**
 
@@ -153,9 +114,11 @@ The demo requires seed data across two databases. Import the following collectio
 | ------------------------- | --------------------------------------------- |
 | `accounts`                | Internal bank accounts                        |
 | `users`                   | Internal bank users                           |
-| `transactions`            | Internal transaction history                  |
+| `internal_transactions`   | ISO 20022-aligned internal transaction history |
 | `products`                | Leafy Bank loan/credit products               |
 | `customers`               | Customer credit information                   |
+| `credit_bureau_scores`    | User credit scores                            |
+| `mcc_codes`               | MCC reference codes with vector embeddings    |
 | `spending_best_practices` | MCC code ranges and spending category targets |
 | `portability_rules`       | Underwriting rules for loan portability       |
 
@@ -356,7 +319,6 @@ make clean    # Remove container and images
 | ------ | ---------------------------------------------- | ------------------------------------------ |
 | `GET`  | `/api/v1/demo/profiles`                        | Available spending profiles and demo users |
 | `GET`  | `/api/v1/encryption-demo/compare/{consent_id}` | QE decrypted vs raw binary comparison      |
-| `GET`  | `/api/v1/debug/*`                              | Raw database inspection (dev only)         |
 
 ## Core Capabilities
 
