@@ -98,15 +98,17 @@ class ProductService:
 
         # If amount is provided, check min/max limits (but allow products without limits)
         if current_amount is not None:
-            query["$or"] = [
-                # Products with no amount limits
-                {"MinAmount": {"$exists": False}},
-                {"MaxAmount": {"$exists": False}},
-                # Products where amount is within limits
-                {"$and": [
+            query["$and"] = query.get("$and", []) + [
+                # Min check: no minimum set OR amount meets minimum
+                {"$or": [
+                    {"MinAmount": {"$exists": False}},
                     {"MinAmount": {"$lte": current_amount}},
-                    {"MaxAmount": {"$gte": current_amount}}
-                ]}
+                ]},
+                # Max check: no maximum set OR amount within maximum
+                {"$or": [
+                    {"MaxAmount": {"$exists": False}},
+                    {"MaxAmount": {"$gte": current_amount}},
+                ]},
             ]
 
         # Execute query and sort by rate ascending (best rates first)
