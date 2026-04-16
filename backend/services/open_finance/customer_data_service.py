@@ -350,6 +350,11 @@ class CustomerDataService:
         # Step 7: Record data access for audit
         self._record_data_access(consent_id, "EXTERNAL_TRANSACTIONS")
 
+        # Step 8: Consume one-time consents (matches retrieve_data_with_consent behavior)
+        consent_type = consent.get("ConsentType", "DURATION_BASED")
+        if consent_type == "ONE_TIME":
+            self._consume_consent(consent_id)
+
         return {
             "transactions": transactions,
             "consent_id": consent_id,
@@ -360,13 +365,16 @@ class CustomerDataService:
     def _consume_consent(self, consent_id: str) -> None:
         """Mark a one-time consent as consumed after data retrieval.
 
+        Uses an atomic filter on Status=AUTHORISED to prevent double-consumption
+        from concurrent requests (TOCTOU race).
+
         Args:
             consent_id (str): The ConsentId to consume.
         """
         now = datetime.now(timezone.utc)
 
-        self.consents_collection.update_one(
-            {"ConsentId": consent_id},
+        result = self.consents_collection.update_one(
+            {"ConsentId": consent_id, "Status": "AUTHORISED"},
             {
                 "$set": {
                     "Status": "CONSUMED",
@@ -381,7 +389,10 @@ class CustomerDataService:
                 }
             }
         )
-        logger.info(f"One-time consent {consent_id} marked as CONSUMED")
+        if result.modified_count:
+            logger.info(f"One-time consent {consent_id} marked as CONSUMED")
+        else:
+            logger.warning(f"One-time consent {consent_id} was already consumed or status changed")
 
     def _expire_consent(self, consent_id: str) -> None:
         """Mark a consent as expired when ExpirationDateTime has passed.

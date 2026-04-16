@@ -221,12 +221,13 @@ class TransactionsService:
             logger.error("Receiver user details do not match.")
             return None
 
+        # Same-account check — validate before entering the transaction callback
+        if account_id_sender == account_id_receiver:
+            logger.error("Cannot transfer to the same account!")
+            return None
+
         def callback(session: ClientSession):
             # Create the transaction document
-
-            if sender_user_name == receiver_user_name and sender_account_number == receiver_account_number:
-                logger.error("Cannot transfer to the same account!")
-                return False
 
             transaction_internal = False
 
