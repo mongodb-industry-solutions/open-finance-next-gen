@@ -1,0 +1,18 @@
+# GitHub CODEOWNERS file for automatic review requests
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Dependency files
+backend/pyproject.toml @kirant1008 @mongodb-industry-solutions/ist-techhub
+backend/poetry.lock @kirant1008 @mongodb-industry-solutions/ist-techhub
+
+# Dependabot configuration
+.github/dependabot.yml @kirant1008 @mongodb-industry-solutions/ist-techhub
+
+# GitHub workflows and actions
+.github/workflows/ @kirant1008 @mongodb-industry-solutions/ist-techhub
+.github/actions/ @kirant1008 @mongodb-industry-solutions/ist-techhub
+
+# Docker and deployment
+Dockerfile* @kirant1008 @mongodb-industry-solutions/ist-techhub
+.drone.yml @kirant1008 @mongodb-industry-solutions/ist-techhub
+environment/ @kirant1008 @mongodb-industry-solutions/ist-techhub

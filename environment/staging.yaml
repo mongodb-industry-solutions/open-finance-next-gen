@@ -1,3 +1,10 @@
+security:
+  dataClassification: "Internal"
+  dataDesignation: ["MI"]
+
+ownership:
+  driEmail: "kiran.tulsulkar@mongodb.com"
+
 env:
   NODE_ENV: staging
   KMS_PROVIDER: aws
