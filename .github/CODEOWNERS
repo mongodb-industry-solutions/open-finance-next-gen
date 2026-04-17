@@ -2,8 +2,8 @@
 # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Dependency files
-pyproject.toml @kirant1008 @mongodb-industry-solutions/ist-techhub
-poetry.lock @kirant1008 @mongodb-industry-solutions/ist-techhub
+backend/pyproject.toml @kirant1008 @mongodb-industry-solutions/ist-techhub
+backend/poetry.lock @kirant1008 @mongodb-industry-solutions/ist-techhub
 
 # Dependabot configuration
 .github/dependabot.yml @kirant1008 @mongodb-industry-solutions/ist-techhub
