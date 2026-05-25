@@ -1,5 +1,5 @@
 # ---- Stage 1: Build ----
-FROM python:3.10-slim-bookworm AS builder
+FROM python:3.14.5-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir poetry==1.8.4 \
     && poetry install --no-interaction --no-cache --no-root
 
 # ---- Stage 2: Runtime ----
-FROM python:3.10-slim-bookworm
+FROM python:3.14.5-slim-bookworm
 
 WORKDIR /app
 
