@@ -33,9 +33,8 @@ OPENFINANCE_COLLECTIONS = [
 
 LEAFYBANK_COLLECTIONS = [
     "accounts",
-    "users",
+    "customers",
     "transactions",
-    "products",
     "openBankingConsents",
 ]
 

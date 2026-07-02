@@ -32,11 +32,11 @@ OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 CONSENTS_COLLECTION = "openBankingConsents"
 INSTITUTIONS_COLLECTION = "institutions"
 
-# Initialize UsersService for user lookups (users are in leafy_bank database)
+# Initialize UsersService for customer lookups (customers are in leafy_bank database)
 connection = get_mongo_connection()
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
-USERS_COLLECTION = "users"
-users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
+CUSTOMERS_COLLECTION = "customers"
+users_service = UsersService(connection, LEAFYBANK_DB_NAME, CUSTOMERS_COLLECTION)
 
 # Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
