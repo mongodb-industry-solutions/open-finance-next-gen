@@ -17,9 +17,7 @@ class CustomerDataService:
         consents_collection_name: str,
         external_accounts_collection_name: str,
         external_products_collection_name: str,
-        external_transactions_collection_name: str,
-        external_repayment_history_collection_name: str,
-        external_customer_identification_collection_name: str
+        external_transactions_collection_name: str
     ):
         """Initialize the CustomerDataService with MongoDB connection and collection names.
 
@@ -30,8 +28,6 @@ class CustomerDataService:
             external_accounts_collection_name (str): The name of the external accounts collection.
             external_products_collection_name (str): The name of the external products collection.
             external_transactions_collection_name (str): The name of the external transactions collection.
-            external_repayment_history_collection_name (str): The name of the external repayment history collection.
-            external_customer_identification_collection_name (str): The name of the external customer identification collection.
 
         Returns:
             None
@@ -40,8 +36,6 @@ class CustomerDataService:
         self.external_accounts_collection = connection.get_collection(db_name, external_accounts_collection_name)
         self.external_products_collection = connection.get_collection(db_name, external_products_collection_name)
         self.external_transactions_collection = connection.get_collection(db_name, external_transactions_collection_name)
-        self.external_repayment_history_collection = connection.get_collection(db_name, external_repayment_history_collection_name)
-        self.external_customer_identification_collection = connection.get_collection(db_name, external_customer_identification_collection_name)
 
     def _build_transaction_query(self, user_name: str, institution_name: str, profile: str = None) -> dict:
         """Build MongoDB query for external transactions with optional profile filtering.
@@ -172,110 +166,35 @@ class CustomerDataService:
             "accounts": None,
             "products": None,
             "transactions": None,
-            "repayment_history": None,
-            "customer_identification": None
         }
 
-        if purpose in ("PERSONAL_LOAN_PORTABILITY", "PAYROLL_LOAN_PORTABILITY", "VEHICLE_LOAN_PORTABILITY"):
-            # Credit portability: retrieve loan data gated by permissions
-            if "LOANS_READ" in permissions:
-                products = list(self.external_products_collection.find({
-                    "ProductCustomer.UserName": user_name,
-                    "ProductBank": institution_name,
-                    "ProductType": "Loan"
-                }))
-                result["products"] = products
-                logger.info(f"{purpose}: Retrieved {len(products)} loan products")
-
+        if purpose == "FINANCIAL_ADVICE" or purpose is None:
+            # Financial advice (and general access): accounts, transactions, products
             if "ACCOUNTS_READ" in permissions:
                 accounts = list(self.external_accounts_collection.find({
                     "AccountUser.UserName": user_name,
                     "AccountBank": institution_name
                 }))
                 result["accounts"] = accounts
-                logger.info(f"{purpose}: Retrieved {len(accounts)} accounts")
+                logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(accounts)} accounts")
 
             if "TRANSACTIONS_READ" in permissions:
                 txn_query = self._build_transaction_query(user_name, institution_name, profile)
                 transactions = list(self.external_transactions_collection.find(txn_query))
                 result["transactions"] = transactions
-                logger.info(f"{purpose}: Retrieved {len(transactions)} transactions")
+                logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(transactions)} transactions")
 
-            if "REPAYMENT_HISTORY_READ" in permissions:
-                repayment_history = list(self.external_repayment_history_collection.find({
-                    "PaymentUser.UserName": user_name,
-                    "ProductBank": institution_name
-                }))
-                result["repayment_history"] = repayment_history
-                logger.info(f"{purpose}: Retrieved {len(repayment_history)} repayment records")
-
-            if "CUSTOMER_IDENTIFICATION_READ" in permissions:
-                customer_identification = list(self.external_customer_identification_collection.find({
-                    "CustomerUser.UserName": user_name,
-                    "CustomerBank": institution_name
-                }))
-                result["customer_identification"] = customer_identification
-                logger.info(f"{purpose}: Retrieved {len(customer_identification)} customer identification records")
-
-        elif purpose == "FINANCIAL_ADVICE":
-            # Financial advice: transactions and accounts only
-            if "TRANSACTIONS_READ" in permissions:
-                txn_query = self._build_transaction_query(user_name, institution_name, profile)
-                transactions = list(self.external_transactions_collection.find(txn_query))
-                result["transactions"] = transactions
-                logger.info(f"FINANCIAL_ADVICE: Retrieved {len(transactions)} transactions")
-
-            if "ACCOUNTS_READ" in permissions:
-                accounts = list(self.external_accounts_collection.find({
-                    "AccountUser.UserName": user_name,
-                    "AccountBank": institution_name
-                }))
-                result["accounts"] = accounts
-                logger.info(f"FINANCIAL_ADVICE: Retrieved {len(accounts)} accounts")
-
-        elif purpose is None:
-            # General access consent — query all data sources based on permissions
-            if "ACCOUNTS_READ" in permissions:
-                accounts = list(self.external_accounts_collection.find({
-                    "AccountUser.UserName": user_name,
-                    "AccountBank": institution_name
-                }))
-                result["accounts"] = accounts
-                logger.info(f"GENERAL_ACCESS: Retrieved {len(accounts)} accounts")
-
-            if "LOANS_READ" in permissions:
+            if "PRODUCTS_READ" in permissions:
                 products = list(self.external_products_collection.find({
                     "ProductCustomer.UserName": user_name,
                     "ProductBank": institution_name
                 }))
                 result["products"] = products
-                logger.info(f"GENERAL_ACCESS: Retrieved {len(products)} products")
-
-            if "TRANSACTIONS_READ" in permissions:
-                txn_query = self._build_transaction_query(user_name, institution_name, profile)
-                transactions = list(self.external_transactions_collection.find(txn_query))
-                result["transactions"] = transactions
-                logger.info(f"GENERAL_ACCESS: Retrieved {len(transactions)} transactions")
+                logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(products)} products")
 
             if "ACCOUNTS_BALANCES_READ" in permissions:
                 # Balance data comes from accounts — already retrieved above
-                logger.info("GENERAL_ACCESS: ACCOUNTS_BALANCES_READ granted (balances included in accounts)")
-
-            if "REPAYMENT_HISTORY_READ" in permissions:
-                repayment_history = list(self.external_repayment_history_collection.find({
-                    "PaymentUser.UserName": user_name,
-                    "ProductBank": institution_name
-                }))
-                result["repayment_history"] = repayment_history
-                logger.info(f"GENERAL_ACCESS: Retrieved {len(repayment_history)} repayment records")
-
-            if "CUSTOMER_IDENTIFICATION_READ" in permissions:
-                customer_identification = list(self.external_customer_identification_collection.find({
-                    "CustomerUser.UserName": user_name,
-                    "CustomerBank": institution_name
-                }))
-                result["customer_identification"] = customer_identification
-                logger.info(f"GENERAL_ACCESS: Retrieved {len(customer_identification)} customer identification records")
+                logger.info(f"{purpose or 'GENERAL_ACCESS'}: ACCOUNTS_BALANCES_READ granted (balances included in accounts)")
 
         else:
             logger.warning(f"Unknown purpose: {purpose}")

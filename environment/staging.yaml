@@ -25,7 +25,7 @@ serviceAccount:
 extraVolumes:
   - name: encryption-config
     configMap:
-      name: encryption-config
+      name: fsi-consents-encryption-config
 
 extraVolumeMounts:
   - name: encryption-config

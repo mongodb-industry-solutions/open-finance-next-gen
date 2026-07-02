@@ -53,7 +53,6 @@ class TransactionsService:
         self.accounts_collection = self.db['accounts']
         self.transactions_collection = self.db['internal_transactions']
         self.users_collection = self.db['users']
-        self.notifications_collection = self.db['notifications']
 
     def is_valid_user(self, user_identifier: Union[str, ObjectId]) -> bool:
         """Check if the user exists in the system.
@@ -355,91 +354,6 @@ class TransactionsService:
                     session=session
                 )
 
-            # Create notifications
-            notification_date = datetime.now(timezone.utc)
-
-            notification_accounts = {
-                "AccountIdSender": ObjectId(account_id_sender),
-                "AccountNumberSender": sender_account_number,
-                "AccountTypeSender": sender_account_type,
-                "AccountIdReceiver": ObjectId(account_id_receiver),
-                "AccountNumberReceiver": receiver_account_number,
-                "AccountTypeReceiver": receiver_account_type
-            }
-            if transaction_internal:
-                # Internal transaction, create a single notification
-                notification = {
-                    "NotificationEvent": "InternalTransfer",
-                    "NotificationMessage": f"You have transferred {sender_result['AccountCurrency']} {transaction_amount} internally!",
-                    "NotificationDate": notification_date,
-                    "NotificationUser": {
-                        "UserName": sender_user_name,
-                        "UserId": ObjectId(sender_user_id)
-                    },
-                    "NotificationTransaction": {
-                        "TransactionId": transaction_id
-                    },
-                    "NotificationAccounts": notification_accounts
-                }
-                self.notifications_collection.insert_one(notification, session=session)
-            else:
-                # Create separate notifications for sender and receiver
-                if transaction_type == "AccountTransfer":
-                    sender_notification = {
-                        "NotificationEvent": "TransferSent",
-                        "NotificationMessage": f"You have transferred {sender_result['AccountCurrency']} {transaction_amount} to {receiver_user_name}. Your new balance is {sender_result['AccountCurrency']} {sender_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": sender_user_name,
-                            "UserId": ObjectId(sender_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                    receiver_notification = {
-                        "NotificationEvent": "TransferReceived",
-                        "NotificationMessage": f"You have received a transfer of {receiver_result['AccountCurrency']} {transaction_amount} from {sender_user_name}. Your new balance is {receiver_result['AccountCurrency']} {receiver_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": receiver_user_name,
-                            "UserId": ObjectId(receiver_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                else:  # Assuming the other type is DigitalPayment
-                    sender_notification = {
-                        "NotificationEvent": "PaymentMade",
-                        "NotificationMessage": f"You have made a payment of {sender_result['AccountCurrency']} {transaction_amount} to {receiver_user_name} using {payment_method}. Your new balance is {sender_result['AccountCurrency']} {sender_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": sender_user_name,
-                            "UserId": ObjectId(sender_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                    receiver_notification = {
-                        "NotificationEvent": "PaymentReceived",
-                        "NotificationMessage": f"You have received a payment of {receiver_result['AccountCurrency']} {transaction_amount} from {sender_user_name} via {payment_method}. Your new balance is {receiver_result['AccountCurrency']} {receiver_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": receiver_user_name,
-                            "UserId": ObjectId(receiver_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                self.notifications_collection.insert_many([sender_notification, receiver_notification], session=session)
-
             # Update the transaction document with the notification date (ISO 20022)
             self.transactions_collection.update_one(
                 {"_id": transaction_id},
@@ -474,7 +388,7 @@ class TransactionsService:
             #    - Once committed, changes are durable and can endure server failures.
             #
             # - The code uses a callback function with `session.with_transaction(callback)` to execute the transaction.
-            # - This includes multiple updates and inserts across different collections (accounts, transactions, users, notifications).
+            # - This includes multiple updates and inserts across different collections (accounts, transactions, users).
             # - Wrapping operations in a transaction ensures execution with ACID properties.
             #
             # For more details, see: https://www.mongodb.com/products/capabilities/transactions

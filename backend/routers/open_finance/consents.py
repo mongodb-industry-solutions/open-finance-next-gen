@@ -53,7 +53,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Define Pydantic Models
 class CreateConsentRequest(BaseModel):
     consumer_id: str  # UserName or UserId - validated against bearer token
-    purpose: Optional[str] = None  # None = general access (all permissions). Or: PERSONAL_LOAN_PORTABILITY | PAYROLL_LOAN_PORTABILITY | VEHICLE_LOAN_PORTABILITY | FINANCIAL_ADVICE
+    purpose: Optional[str] = None  # None = general access (all permissions). Or: FINANCIAL_ADVICE
     source_institution_name: str  # must match an existing institution's InstitutionName
     expiration_days: int  # Required: 3-12 (treated as minutes in demo mode)
     permissions: Optional[List[str]] = None  # Optional: subset of purpose's default permissions. Auto-assigned if omitted.
@@ -90,7 +90,7 @@ async def create_consent(
     Create a new consent for data sharing. Requires bearer token authentication.
 
     The source_institution_name must be a valid institution in the system.
-    Valid purposes: PERSONAL_LOAN_PORTABILITY, PAYROLL_LOAN_PORTABILITY, VEHICLE_LOAN_PORTABILITY, FINANCIAL_ADVICE
+    Valid purposes: FINANCIAL_ADVICE
     Or omit purpose (null) for general access — grants all permissions.
 
     Permissions are auto-assigned based on purpose (or all permissions if no purpose).

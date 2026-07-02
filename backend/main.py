@@ -15,11 +15,6 @@ from routers.open_finance import customer_data as of_customer_data
 from routers.leafy_bank.accounts import secure as lb_accounts_secure
 from routers.leafy_bank.users import secure as lb_users_secure
 from routers.leafy_bank.transactions import secure as lb_transactions_secure
-from routers.leafy_bank.products import secure as lb_products_secure
-from routers.leafy_bank.customers import secure as lb_customers_secure
-from routers.leafy_bank.spending import secure as lb_spending_secure
-from routers.leafy_bank.portability import secure as lb_portability_secure
-from routers.leafy_bank.mcc import secure as lb_mcc_secure
 from routers import demo as demo_router
 from routers import encryption_demo as encryption_demo_router
 
@@ -153,41 +148,6 @@ app.include_router(
     lb_transactions_secure.router,
     prefix="/api/v1/leafybank/transactions/secure",
     tags=["Leafy Bank Secure Transactions Endpoint"]
-)
-
-# Include the Leafy Bank products secure router
-app.include_router(
-    lb_products_secure.router,
-    prefix="/api/v1/leafybank/products/secure",
-    tags=["Leafy Bank Products"]
-)
-
-# Include the Leafy Bank customers router (N1: identification, N2: repayment history, N3: credit score)
-app.include_router(
-    lb_customers_secure.router,
-    prefix="/api/v1/leafybank/customers",
-    tags=["Leafy Bank Customers"]
-)
-
-# Include the Leafy Bank spending router (N4: best practices)
-app.include_router(
-    lb_spending_secure.router,
-    prefix="/api/v1/leafybank/spending",
-    tags=["Leafy Bank Spending"]
-)
-
-# Include the Leafy Bank portability router (N5: underwriting rules)
-app.include_router(
-    lb_portability_secure.router,
-    prefix="/api/v1/leafybank/portability",
-    tags=["Leafy Bank Portability"]
-)
-
-# Include the Leafy Bank MCC classification router (vector search)
-app.include_router(
-    lb_mcc_secure.router,
-    prefix="/api/v1/leafybank/mcc",
-    tags=["Leafy Bank MCC Classification"]
 )
 
 # Demo router (scenario management for variable transactions)

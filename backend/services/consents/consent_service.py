@@ -11,29 +11,16 @@ from services.consents.consent_state_machine import (
 logger = logging.getLogger(__name__)
 
 # Purpose -> default permissions mapping
-# All credit portability purposes share the same permission set
-CREDIT_PORTABILITY_PERMISSIONS = [
-    "LOANS_READ",
+ALL_PERMISSIONS = [
     "ACCOUNTS_READ",
     "ACCOUNTS_BALANCES_READ",
-    "REPAYMENT_HISTORY_READ",
-    "CUSTOMER_IDENTIFICATION_READ",
     "TRANSACTIONS_READ",
+    "PRODUCTS_READ",
 ]
 
 PURPOSE_PERMISSIONS = {
-    "PERSONAL_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "PAYROLL_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "VEHICLE_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "FINANCIAL_ADVICE": [
-        "ACCOUNTS_READ",
-        "ACCOUNTS_BALANCES_READ",
-        "TRANSACTIONS_READ",
-    ],
+    "FINANCIAL_ADVICE": ALL_PERMISSIONS,
 }
-
-# All available permissions (superset) — used when purpose is None (general access)
-ALL_PERMISSIONS = CREDIT_PORTABILITY_PERMISSIONS
 
 
 class ConsentService:
@@ -96,9 +83,6 @@ class ConsentService:
     # User-facing display durations (real days) by purpose
     # These are shown to the user while the actual expiry uses demo minutes
     DISPLAY_DURATION_DAYS = {
-        "PERSONAL_LOAN_PORTABILITY": 7,
-        "PAYROLL_LOAN_PORTABILITY": 7,
-        "VEHICLE_LOAN_PORTABILITY": 7,
         "FINANCIAL_ADVICE": 14,
         None: 7,  # general access
     }

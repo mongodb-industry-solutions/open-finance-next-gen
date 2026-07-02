@@ -18,7 +18,7 @@ class ConsentValidator:
         Args:
             consent_id: The ConsentId to validate.
             user_name: The requesting user's UserName.
-            required_permission: The permission required (e.g. CUSTOMER_IDENTIFICATION_READ).
+            required_permission: The permission required (e.g. PRODUCTS_READ).
 
         Returns:
             tuple: (consent_doc, source_institution_name)

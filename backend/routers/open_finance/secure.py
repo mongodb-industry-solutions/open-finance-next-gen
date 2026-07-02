@@ -155,7 +155,7 @@ async def fetch_external_products_for_user_and_institution(
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
-    """Get external financial products for a specific user and institution. Requires valid consent with LOANS_READ permission."""
+    """Get external financial products for a specific user and institution. Requires valid consent with PRODUCTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
         "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
@@ -165,7 +165,7 @@ async def fetch_external_products_for_user_and_institution(
     try:
         # Validate consent
         consent, source_institution = consent_validator.validate_consent(
-            consent_id, user_auth['UserName'], "LOANS_READ"
+            consent_id, user_auth['UserName'], "PRODUCTS_READ"
         )
         if source_institution != institution_name:
             raise ValueError(
@@ -253,7 +253,7 @@ async def fetch_all_external_products_for_user(
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
-    """Get external financial products for a specific user, scoped to the consented institution. Requires valid consent with LOANS_READ permission."""
+    """Get external financial products for a specific user, scoped to the consented institution. Requires valid consent with PRODUCTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
     logger.info(
         "Authenticated User: UserName: %s; UserId: %s", sanitize_log_input(user_auth['UserName']), sanitize_log_input(user_auth['_id']))
@@ -263,7 +263,7 @@ async def fetch_all_external_products_for_user(
     try:
         # Validate consent
         consent, source_institution = consent_validator.validate_consent(
-            consent_id, user_auth['UserName'], "LOANS_READ"
+            consent_id, user_auth['UserName'], "PRODUCTS_READ"
         )
 
         if not user_identifier:
@@ -376,7 +376,7 @@ async def calculate_total_debt_for_user(
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
-    """Endpoint to retrieve the total debt for a specific user. Requires valid consent with LOANS_READ permission."""
+    """Endpoint to retrieve the total debt for a specific user. Requires valid consent with PRODUCTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
 
     # Ensure the authenticated user matches the user_id being queried
@@ -391,7 +391,7 @@ async def calculate_total_debt_for_user(
     try:
         # Validate consent
         consent, source_institution = consent_validator.validate_consent(
-            total_debt_request.consent_id, user_auth['UserName'], "LOANS_READ"
+            total_debt_request.consent_id, user_auth['UserName'], "PRODUCTS_READ"
         )
 
         logger.info(
@@ -497,7 +497,7 @@ async def retrieve_external_product_for_user(
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
-    """Endpoint to simulate the retrieval of an external financial product. Requires valid consent with LOANS_READ permission."""
+    """Endpoint to simulate the retrieval of an external financial product. Requires valid consent with PRODUCTS_READ permission."""
     user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
 
     logger.info(
@@ -517,7 +517,7 @@ async def retrieve_external_product_for_user(
     try:
         # Validate consent
         consent, source_institution = consent_validator.validate_consent(
-            product_data.consent_id, user_auth['UserName'], "LOANS_READ"
+            product_data.consent_id, user_auth['UserName'], "PRODUCTS_READ"
         )
         if source_institution != product_data.product_bank:
             raise ValueError(

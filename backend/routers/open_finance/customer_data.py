@@ -31,8 +31,6 @@ CONSENTS_COLLECTION = "encrypted_consents"
 EXTERNAL_ACCOUNTS_COLLECTION = "external_accounts"
 EXTERNAL_PRODUCTS_COLLECTION = "external_products"
 EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions_test"  # TODO: revert to "external_transactions" when ISO 20022 migration is complete
-EXTERNAL_REPAYMENT_HISTORY_COLLECTION = "external_repayment_history"
-EXTERNAL_CUSTOMER_IDENTIFICATION_COLLECTION = "external_customer_identification"
 
 # Initialize the CustomerDataService with encrypted connection
 customer_data_service = CustomerDataService(
@@ -41,9 +39,7 @@ customer_data_service = CustomerDataService(
     CONSENTS_COLLECTION,
     EXTERNAL_ACCOUNTS_COLLECTION,
     EXTERNAL_PRODUCTS_COLLECTION,
-    EXTERNAL_TRANSACTIONS_COLLECTION,
-    EXTERNAL_REPAYMENT_HISTORY_COLLECTION,
-    EXTERNAL_CUSTOMER_IDENTIFICATION_COLLECTION
+    EXTERNAL_TRANSACTIONS_COLLECTION
 )
 
 # Define a rate limiter
@@ -55,8 +51,6 @@ class ExternalDataResponse(BaseModel):
     accounts: Optional[List[Dict]] = None
     products: Optional[List[Dict]] = None
     transactions: Optional[List[Dict]] = None
-    repayment_history: Optional[List[Dict]] = None
-    customer_identification: Optional[List[Dict]] = None
     consent_id: str
     consent_status: str  # CONSUMED after successful retrieval
     source_institution: str
@@ -90,10 +84,8 @@ async def retrieve_external_data(
     This endpoint:
     1. Validates bearer token and verifies user identity
     2. Validates the consent exists and is AUTHORISED
-    3. Retrieves data from the source institution based on consent purpose and permissions:
-       - PERSONAL/PAYROLL/VEHICLE_LOAN_PORTABILITY: loans, accounts, transactions,
-         repayment history, customer identification (each gated by consent permissions)
-       - FINANCIAL_ADVICE: transactions and accounts
+    3. Retrieves data from the source institution based on consent permissions:
+       - FINANCIAL_ADVICE: accounts, transactions, products (each gated by consent permissions)
     4. Transitions the consent to CONSUMED for one-time consents
     """
     try:

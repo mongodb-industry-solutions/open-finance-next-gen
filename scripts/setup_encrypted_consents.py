@@ -35,7 +35,7 @@ if not MONGODB_URI:
 
 DB_NAME = os.getenv("OPENFINANCE_DB_NAME", "open_finance_test")
 COLL_NAME = "encrypted_consents"
-KEY_VAULT_NAMESPACE = "encryption.__keyVault"
+KEY_VAULT_NAMESPACE = "encryption.__keyVault_consents"
 MASTER_KEY_PATH = BACKEND_DIR / "master-key.bin"
 CRYPT_SHARED_LIB_PATH = os.getenv(
     "CRYPT_SHARED_LIB_PATH",
@@ -212,7 +212,7 @@ def main():
     encrypted_client = MongoClient(MONGODB_URI, auto_encryption_opts=auto_opts)
     encrypted_coll = encrypted_client[DB_NAME][COLL_NAME]
 
-    from datetime import UTC, datetime
+    from datetime import datetime, timezone
 
     test_doc = {
         "ConsentId": "__setup_test__",
@@ -222,8 +222,8 @@ def main():
         "Permissions": ["TEST_PERM"],
         "Purpose": None,  # Verify None works (Purpose not encrypted)
         "SourceInstitution": {"InstitutionName": "Test Bank", "InstitutionId": "test"},
-        "CreationDateTime": datetime.now(UTC),
-        "StatusUpdateDateTime": datetime.now(UTC),
+        "CreationDateTime": datetime.now(timezone.utc),
+        "StatusUpdateDateTime": datetime.now(timezone.utc),
     }
 
     encrypted_coll.insert_one(test_doc)
