@@ -9,6 +9,7 @@ import json
 from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
 from services.auth import Auth
 from services.open_finance.customer_data_service import CustomerDataService
+from services.consents.consent_validator import ConsentValidator
 from encoder.json_encoder import MyJSONEncoder
 
 import os
@@ -23,20 +24,28 @@ router = APIRouter()
 # Initialize the encrypted MongoDB connection (Queryable Encryption on consents)
 encrypted_connection = get_encrypted_mongo_connection()
 
-# Get the database name from the environment variable
-OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
+# Get the database names from the environment variables
+OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")  # external institution data
+LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")  # consents
 
 # Collection names
-CONSENTS_COLLECTION = "encrypted_consents"
+CONSENTS_COLLECTION = "openBankingConsents"
 EXTERNAL_ACCOUNTS_COLLECTION = "external_accounts"
 EXTERNAL_PRODUCTS_COLLECTION = "external_products"
 EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions_test"  # TODO: revert to "external_transactions" when ISO 20022 migration is complete
+
+# Consents live in the Leafy Bank database (QE-encrypted); external data stays in open_finance
+consent_validator = ConsentValidator(
+    encrypted_connection,
+    db_name=LEAFYBANK_DB_NAME,
+    consents_collection_name=CONSENTS_COLLECTION
+)
 
 # Initialize the CustomerDataService with encrypted connection
 customer_data_service = CustomerDataService(
     encrypted_connection,
     OPENFINANCE_DB_NAME,
-    CONSENTS_COLLECTION,
+    consent_validator,
     EXTERNAL_ACCOUNTS_COLLECTION,
     EXTERNAL_PRODUCTS_COLLECTION,
     EXTERNAL_TRANSACTIONS_COLLECTION

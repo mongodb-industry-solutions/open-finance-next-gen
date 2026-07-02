@@ -29,7 +29,7 @@ encrypted_connection = get_encrypted_mongo_connection()
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 
 # Collection names
-CONSENTS_COLLECTION = "encrypted_consents"
+CONSENTS_COLLECTION = "openBankingConsents"
 INSTITUTIONS_COLLECTION = "institutions"
 
 # Initialize UsersService for user lookups (users are in leafy_bank database)
@@ -41,9 +41,10 @@ users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
 # Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
     encrypted_connection,
-    OPENFINANCE_DB_NAME,
+    LEAFYBANK_DB_NAME,
     CONSENTS_COLLECTION,
-    INSTITUTIONS_COLLECTION
+    INSTITUTIONS_COLLECTION,
+    institutions_db_name=OPENFINANCE_DB_NAME
 )
 
 # Define a rate limiter

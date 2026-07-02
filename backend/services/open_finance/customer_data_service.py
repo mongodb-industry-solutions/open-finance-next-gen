@@ -1,8 +1,7 @@
 import logging
 from typing import Dict, List
-from datetime import datetime, timezone
 from database.connection import MongoDBConnection
-from services.consents.consent_state_machine import can_retrieve_data
+from services.consents.consent_validator import ConsentValidator
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ class CustomerDataService:
         self,
         connection: MongoDBConnection,
         db_name: str,
-        consents_collection_name: str,
+        consent_validator: ConsentValidator,
         external_accounts_collection_name: str,
         external_products_collection_name: str,
         external_transactions_collection_name: str
@@ -23,8 +22,8 @@ class CustomerDataService:
 
         Args:
             connection (MongoDBConnection): The MongoDB connection instance.
-            db_name (str): The name of the database.
-            consents_collection_name (str): The name of the consents collection.
+            db_name (str): The name of the database holding external institution data.
+            consent_validator (ConsentValidator): Validates consents and records their usage.
             external_accounts_collection_name (str): The name of the external accounts collection.
             external_products_collection_name (str): The name of the external products collection.
             external_transactions_collection_name (str): The name of the external transactions collection.
@@ -32,7 +31,7 @@ class CustomerDataService:
         Returns:
             None
         """
-        self.consents_collection = connection.get_collection(db_name, consents_collection_name)
+        self.consent_validator = consent_validator
         self.external_accounts_collection = connection.get_collection(db_name, external_accounts_collection_name)
         self.external_products_collection = connection.get_collection(db_name, external_products_collection_name)
         self.external_transactions_collection = connection.get_collection(db_name, external_transactions_collection_name)
@@ -77,68 +76,26 @@ class CustomerDataService:
         Raises:
             ValueError: If consent is invalid, not authorized, or doesn't belong to user.
         """
-        # Step 1: Load consent
-        consent = self.consents_collection.find_one({"ConsentId": consent_id})
-        if not consent:
-            raise ValueError(f"Consent '{consent_id}' not found.")
+        # Step 1: Validate consent (existence, expiry, status, ownership)
+        consent, source_institution = self.consent_validator.validate_consent(consent_id, user_name)
 
-        # Step 2: Check if consent has expired (for duration-based consents)
-        expiration_dt = consent.get("ExpirationDateTime")
-        if expiration_dt:
-            # Handle both naive and aware datetimes from MongoDB
-            now = datetime.now(timezone.utc)
-            if expiration_dt.tzinfo is None:
-                # MongoDB stored as naive UTC, make it aware
-                expiration_dt = expiration_dt.replace(tzinfo=timezone.utc)
-            if expiration_dt < now:
-                # Mark as EXPIRED before rejecting
-                self._expire_consent(consent_id)
-                raise ValueError(f"Consent '{consent_id}' has expired.")
-
-        # Step 3: Verify consent status is AUTHORISED
-        status = consent.get("Status")
-        if not can_retrieve_data(status):
-            if status == "CONSUMED":
-                raise ValueError(f"Consent '{consent_id}' has already been used (one-time consent).")
-            elif status == "AWAITING_AUTHORISATION":
-                raise ValueError(f"Consent '{consent_id}' is not yet authorized. Please approve it first.")
-            elif status in ("REJECTED", "REVOKED", "EXPIRED"):
-                raise ValueError(f"Consent '{consent_id}' is no longer valid (status: {status}).")
-            else:
-                raise ValueError(f"Consent '{consent_id}' cannot be used for data retrieval (status: {status}).")
-
-        # Step 4: Verify consent belongs to requesting user
-        consent_user = consent.get("Consumer", {}).get("UserName")
-        if consent_user != user_name:
-            raise ValueError("Unauthorized: This consent does not belong to you.")
-
-        # Step 5: Extract source institution, purpose, and permissions
-        source_institution = consent.get("SourceInstitution", {}).get("InstitutionName")
         purpose = consent.get("Purpose")
         permissions = consent.get("Permissions", [])
 
-        if not source_institution:
-            raise ValueError("Consent is missing source institution information.")
-
         logger.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose or 'GENERAL_ACCESS'}")
 
-        # Step 6: Query data based on purpose, gated by consent permissions
+        # Step 2: Query data based on purpose, gated by consent permissions
         result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions, profile)
 
-        # Step 6b: Record data access in StatusHistory (audit trail)
+        # Step 3: Record data access in StatusHistory (audit trail)
         accessed_resources = [k.upper() for k, v in result.items() if v is not None]
-        self._record_data_access(consent_id, f"EXTERNAL_DATA ({', '.join(accessed_resources)})")
+        self.consent_validator.record_data_access(consent_id, f"EXTERNAL_DATA ({', '.join(accessed_resources)})")
 
-        # Step 7: Mark as CONSUMED only for one-time consents
+        # Step 4: Consume one-time consents (duration-based stay AUTHORISED until expiry)
         consent_type = consent.get("ConsentType", "DURATION_BASED")
-        if consent_type == "ONE_TIME":
-            self._consume_consent(consent_id)
-            result["consent_status"] = "CONSUMED"
-        else:
-            # Duration-based consents stay AUTHORISED until they expire
-            result["consent_status"] = "AUTHORISED"
+        result["consent_status"] = self.consent_validator.consume_if_one_time(consent)
 
-        # Step 8: Add consent info to result
+        # Step 5: Add consent info to result
         result["consent_id"] = consent_id
         result["consent_type"] = consent_type
         result["source_institution"] = source_institution
@@ -184,7 +141,7 @@ class CustomerDataService:
                 result["transactions"] = transactions
                 logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(transactions)} transactions")
 
-            if "PRODUCTS_READ" in permissions:
+            if "LOANS_READ" in permissions:
                 products = list(self.external_products_collection.find({
                     "ProductCustomer.UserName": user_name,
                     "ProductBank": institution_name
@@ -216,63 +173,28 @@ class CustomerDataService:
             ValueError: If consent is invalid, not authorized, or doesn't belong to user.
             PermissionError: If consent lacks TRANSACTIONS_READ permission.
         """
-        # Step 1: Load consent
-        consent = self.consents_collection.find_one({"ConsentId": consent_id})
-        if not consent:
-            raise ValueError(f"Consent '{consent_id}' not found.")
+        # Step 1: Validate consent (existence, expiry, status, ownership)
+        consent, source_institution = self.consent_validator.validate_consent(consent_id, user_name)
 
-        # Step 2: Check if consent has expired
-        expiration_dt = consent.get("ExpirationDateTime")
-        if expiration_dt:
-            now = datetime.now(timezone.utc)
-            if expiration_dt.tzinfo is None:
-                expiration_dt = expiration_dt.replace(tzinfo=timezone.utc)
-            if expiration_dt < now:
-                self._expire_consent(consent_id)
-                raise ValueError(f"Consent '{consent_id}' has expired.")
-
-        # Step 3: Verify consent status is AUTHORISED
-        status = consent.get("Status")
-        if not can_retrieve_data(status):
-            if status == "CONSUMED":
-                raise ValueError(f"Consent '{consent_id}' has already been used (one-time consent).")
-            elif status == "AWAITING_AUTHORISATION":
-                raise ValueError(f"Consent '{consent_id}' is not yet authorized. Please approve it first.")
-            elif status in ("REJECTED", "REVOKED", "EXPIRED"):
-                raise ValueError(f"Consent '{consent_id}' is no longer valid (status: {status}).")
-            else:
-                raise ValueError(f"Consent '{consent_id}' cannot be used for data retrieval (status: {status}).")
-
-        # Step 4: Verify consent belongs to requesting user
-        consent_user = consent.get("Consumer", {}).get("UserName")
-        if consent_user != user_name:
-            raise ValueError("Unauthorized: This consent does not belong to you.")
-
-        # Step 5: Verify TRANSACTIONS_READ permission
+        # Step 2: Verify TRANSACTIONS_READ permission (distinct error for the caller)
         permissions = consent.get("Permissions", [])
         if "TRANSACTIONS_READ" not in permissions:
             raise PermissionError("Consent does not include TRANSACTIONS_READ permission.")
-
-        # Step 6: Query external transactions
-        source_institution = consent.get("SourceInstitution", {}).get("InstitutionName")
-        if not source_institution:
-            raise ValueError("Consent is missing source institution information.")
 
         purpose = consent.get("Purpose")
 
         logger.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
 
+        # Step 3: Query external transactions
         txn_query = self._build_transaction_query(user_name, source_institution, profile)
         transactions = list(self.external_transactions_collection.find(txn_query))
         logger.info(f"Retrieved {len(transactions)} external transactions")
 
-        # Step 7: Record data access for audit
-        self._record_data_access(consent_id, "EXTERNAL_TRANSACTIONS")
+        # Step 4: Record data access for audit
+        self.consent_validator.record_data_access(consent_id, "EXTERNAL_TRANSACTIONS")
 
-        # Step 8: Consume one-time consents (matches retrieve_data_with_consent behavior)
-        consent_type = consent.get("ConsentType", "DURATION_BASED")
-        if consent_type == "ONE_TIME":
-            self._consume_consent(consent_id)
+        # Step 5: Consume one-time consents (matches retrieve_data_with_consent behavior)
+        self.consent_validator.consume_if_one_time(consent)
 
         return {
             "transactions": transactions,
@@ -280,82 +202,3 @@ class CustomerDataService:
             "source_institution": source_institution,
             "purpose": purpose or "GENERAL_ACCESS"
         }
-
-    def _consume_consent(self, consent_id: str) -> None:
-        """Mark a one-time consent as consumed after data retrieval.
-
-        Uses an atomic filter on Status=AUTHORISED to prevent double-consumption
-        from concurrent requests (TOCTOU race).
-
-        Args:
-            consent_id (str): The ConsentId to consume.
-        """
-        now = datetime.now(timezone.utc)
-
-        result = self.consents_collection.update_one(
-            {"ConsentId": consent_id, "Status": "AUTHORISED"},
-            {
-                "$set": {
-                    "Status": "CONSUMED",
-                    "StatusUpdateDateTime": now
-                },
-                "$push": {
-                    "StatusHistory": {
-                        "Status": "CONSUMED",
-                        "DateTime": now,
-                        "Reason": "One-time consent used"
-                    }
-                }
-            }
-        )
-        if result.modified_count:
-            logger.info(f"One-time consent {consent_id} marked as CONSUMED")
-        else:
-            logger.warning(f"One-time consent {consent_id} was already consumed or status changed")
-
-    def _expire_consent(self, consent_id: str) -> None:
-        """Mark a consent as expired when ExpirationDateTime has passed.
-
-        Args:
-            consent_id (str): The ConsentId to expire.
-        """
-        now = datetime.now(timezone.utc)
-
-        self.consents_collection.update_one(
-            {"ConsentId": consent_id},
-            {
-                "$set": {
-                    "Status": "EXPIRED",
-                    "StatusUpdateDateTime": now
-                },
-                "$push": {
-                    "StatusHistory": {
-                        "Status": "EXPIRED",
-                        "DateTime": now,
-                        "Reason": "Consent duration exceeded"
-                    }
-                }
-            }
-        )
-        logger.info(f"Consent {consent_id} marked as EXPIRED")
-
-    def _record_data_access(self, consent_id: str, resource: str) -> None:
-        """Record a data access event in the consent's StatusHistory.
-
-        Args:
-            consent_id: The ConsentId that was used.
-            resource: Description of the resource accessed.
-        """
-        now = datetime.now(timezone.utc)
-        self.consents_collection.update_one(
-            {"ConsentId": consent_id},
-            {
-                "$set": {"StatusUpdateDateTime": now},
-                "$push": {"StatusHistory": {
-                    "Status": "DATA_ACCESSED",
-                    "DateTime": now,
-                    "Reason": f"Data retrieved: {resource}"
-                }}
-            }
-        )
-        logger.info(f"Consent {consent_id}: recorded data access for {resource}")

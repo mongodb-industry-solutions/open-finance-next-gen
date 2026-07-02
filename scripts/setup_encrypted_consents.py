@@ -1,7 +1,7 @@
 """
 One-time setup: Create the encrypted consents collection with Queryable Encryption.
 
-Creates the `encrypted_consents` collection in the OPENFINANCE_DB_NAME database,
+Creates the `encrypted_consents` collection in the LEAFYBANK_DB_NAME database,
 generates data encryption keys (DEKs) for each encrypted field, creates indexes,
 and saves the resulting encrypted_fields_map to encryption_config.json for runtime use.
 
@@ -33,8 +33,8 @@ if not MONGODB_URI:
     print("ERROR: MONGODB_URI not set in backend/.env")
     sys.exit(1)
 
-DB_NAME = os.getenv("OPENFINANCE_DB_NAME", "open_finance_test")
-COLL_NAME = "encrypted_consents"
+DB_NAME = os.getenv("LEAFYBANK_DB_NAME", "leafy_bank_test")
+COLL_NAME = "openBankingConsents"
 KEY_VAULT_NAMESPACE = "encryption.__keyVault_consents"
 MASTER_KEY_PATH = BACKEND_DIR / "master-key.bin"
 CRYPT_SHARED_LIB_PATH = os.getenv(
