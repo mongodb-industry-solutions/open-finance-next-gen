@@ -11,6 +11,7 @@ from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
 from services.internal.users_service import UsersService
+from routers.open_finance.customer_data import cached_data_service
 from encoder.json_encoder import MyJSONEncoder
 
 import os
@@ -367,6 +368,9 @@ async def revoke_consent(
 
         if not updated_consent:
             raise HTTPException(status_code=500, detail="Failed to revoke consent.")
+
+        # Purge any cached external data for this consent (idempotent)
+        cached_data_service.purge_consent_data(consent_id)
 
         return Response(
             content=json.dumps({"consent": updated_consent}, cls=MyJSONEncoder),

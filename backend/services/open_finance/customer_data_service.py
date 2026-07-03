@@ -36,26 +36,22 @@ class CustomerDataService:
         self.external_products_collection = connection.get_collection(db_name, external_products_collection_name)
         self.external_transactions_collection = connection.get_collection(db_name, external_transactions_collection_name)
 
-    def _build_transaction_query(self, user_name: str, institution_name: str, profile: str = None) -> dict:
-        """Build MongoDB query for external transactions with optional profile filtering.
+    def _build_transaction_query(self, user_name: str, institution_name: str) -> dict:
+        """Build MongoDB query for external transactions (BIAN-aligned schema).
 
-        When profile is provided: return base transactions (no Profile field) + selected profile.
-        When no profile: return only base transactions (exclude all profile transactions).
+        The account holder appears as `payer` on outgoing transactions and `payee`
+        on incoming ones, so match on either side. Institution name is only
+        recorded in `createdBy` (as "EXTERNAL-<institution>") in this schema.
         """
-        query = {
-            "Dbtr.Nm": user_name,
-            "Acct.Svcr": institution_name,
+        return {
+            "$or": [
+                {"payer.name": user_name},
+                {"payee.name": user_name},
+            ],
+            "createdBy": f"EXTERNAL-{institution_name}",
         }
-        if profile:
-            query["$or"] = [
-                {"Profile": {"$exists": False}},
-                {"Profile": profile},
-            ]
-        else:
-            query["Profile"] = {"$exists": False}
-        return query
 
-    def retrieve_data_with_consent(self, consent_id: str, user_name: str, profile: str = None) -> Dict:
+    def retrieve_data_with_consent(self, consent_id: str, user_name: str) -> Dict:
         """Retrieve external data based on an authorized consent.
 
         This method:
@@ -68,7 +64,6 @@ class CustomerDataService:
         Args:
             consent_id (str): The ConsentId to use for data retrieval.
             user_name (str): The username of the requesting user.
-            profile (str): Optional spending profile filter (overspender, balanced, saver).
 
         Returns:
             Dict: Retrieved data with keys: accounts, products, transactions (based on purpose).
@@ -85,7 +80,7 @@ class CustomerDataService:
         logger.info(f"Retrieving data for user {user_name} from {source_institution} for purpose {purpose or 'GENERAL_ACCESS'}")
 
         # Step 2: Query data based on purpose, gated by consent permissions
-        result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions, profile)
+        result = self._query_data_by_purpose(user_name, source_institution, purpose, permissions)
 
         # Step 3: Record data access in StatusHistory (audit trail)
         accessed_resources = [k.upper() for k, v in result.items() if v is not None]
@@ -103,7 +98,7 @@ class CustomerDataService:
 
         return result
 
-    def _query_data_by_purpose(self, user_name: str, institution_name: str, purpose: str, permissions: List[str], profile: str = None) -> Dict:
+    def _query_data_by_purpose(self, user_name: str, institution_name: str, purpose: str, permissions: List[str]) -> Dict:
         """Query appropriate collections based on consent purpose, gated by permissions.
 
         Each data source is only queried if the corresponding permission is present
@@ -136,7 +131,7 @@ class CustomerDataService:
                 logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(accounts)} accounts")
 
             if "TRANSACTIONS_READ" in permissions:
-                txn_query = self._build_transaction_query(user_name, institution_name, profile)
+                txn_query = self._build_transaction_query(user_name, institution_name)
                 transactions = list(self.external_transactions_collection.find(txn_query))
                 result["transactions"] = transactions
                 logger.info(f"{purpose or 'GENERAL_ACCESS'}: Retrieved {len(transactions)} transactions")
@@ -158,13 +153,12 @@ class CustomerDataService:
 
         return result
 
-    def retrieve_transactions_with_consent(self, consent_id: str, user_name: str, profile: str = None) -> Dict:
+    def retrieve_transactions_with_consent(self, consent_id: str, user_name: str) -> Dict:
         """Retrieve only external transactions based on an authorized consent.
 
         Args:
             consent_id (str): The ConsentId to use for data retrieval.
             user_name (str): The username of the requesting user.
-            profile (str): Optional spending profile filter (overspender, balanced, saver).
 
         Returns:
             Dict: Retrieved transactions with consent metadata.
@@ -186,7 +180,7 @@ class CustomerDataService:
         logger.info(f"Retrieving external transactions for user {user_name} from {source_institution}")
 
         # Step 3: Query external transactions
-        txn_query = self._build_transaction_query(user_name, source_institution, profile)
+        txn_query = self._build_transaction_query(user_name, source_institution)
         transactions = list(self.external_transactions_collection.find(txn_query))
         logger.info(f"Retrieved {len(transactions)} external transactions")
 

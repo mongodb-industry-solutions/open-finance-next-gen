@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,6 +7,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.errors import RateLimitExceeded
+from apscheduler.schedulers.background import BackgroundScheduler
 
 import logging
 from routers.open_finance import secure as of_secure
@@ -15,8 +18,8 @@ from routers.open_finance import customer_data as of_customer_data
 from routers.leafy_bank.accounts import secure as lb_accounts_secure
 from routers.leafy_bank.users import secure as lb_users_secure
 from routers.leafy_bank.transactions import secure as lb_transactions_secure
-from routers import demo as demo_router
 from routers import encryption_demo as encryption_demo_router
+from services.consents.consent_sweeper import ConsentSweeper
 
 # Logging
 logging.basicConfig(
@@ -27,8 +30,31 @@ logging.basicConfig(
 # Set up the Limiter
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run a background sweep that expires overdue consents and purges their cached data.
+
+    Nothing fires when a consent reaches its ExpirationDateTime, so we poll every
+    60 seconds. Revocation is handled synchronously in the revoke endpoint.
+    """
+    sweeper = ConsentSweeper(
+        of_customer_data.consent_validator,
+        of_customer_data.cached_data_service,
+    )
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(sweeper.sweep, "interval", seconds=60, id="consent_sweep")
+    scheduler.start()
+    logging.getLogger(__name__).info("Consent expiry sweeper started (interval: 60s)")
+    try:
+        yield
+    finally:
+        scheduler.shutdown()
+
+
 # Initialize the FastAPI app with metadata
 app = FastAPI(
+    lifespan=lifespan,
     title="Open Finance Demo API",
     description="""
     This is a demo API that allows you to interact with the Open Finance and Leafy Bank systems.
@@ -148,13 +174,6 @@ app.include_router(
     lb_transactions_secure.router,
     prefix="/api/v1/leafybank/transactions/secure",
     tags=["Leafy Bank Secure Transactions Endpoint"]
-)
-
-# Demo router (scenario management for variable transactions)
-app.include_router(
-    demo_router.router,
-    prefix="/api/v1/demo",
-    tags=["Demo"]
 )
 
 # Encryption demo router (Queryable Encryption comparison)
