@@ -1,43 +1,13 @@
 import logging
 from bson import ObjectId
-from typing import Union, Optional
-from pymongo.client_session import ClientSession
-from datetime import datetime, timezone
+from typing import Union
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
 
-# ISO 20022 account type mapping
-_ACCT_TYPE_MAP = {
-    "Checking": "CACC",
-    "Savings": "SVGS",
-    "CreditCard": "CARD",
-}
-
-# BkTxCd family mapping by transaction type
-_BKTXCD_MAP = {
-    "AccountTransfer": {"Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "BOOK"},
-    "DigitalPayment":  {"Domn": "PMNT", "Fmly": "ICDT", "SubFmly": "BOOK"},
-}
-
-# Fallback for missing BookgDt — UTC-aware epoch
-_EPOCH_UTC = datetime.min.replace(tzinfo=timezone.utc)
-
-
-def _ensure_aware(dt) -> datetime:
-    """Return a UTC-aware datetime for safe sorting.
-
-    Handles: None, naive (from PyMongo default), and aware datetimes.
-    """
-    if dt is None:
-        return _EPOCH_UTC
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
-
 
 class TransactionsService:
-    """This class provides methods to perform transactions in the database."""
+    """This class reads customer transactions from the database (BIAN schema)."""
 
     def __init__(self, connection: MongoDBConnection, db_name: str):
         """Initialize the TransactionsService with the MongoDB connection and database name.
@@ -50,437 +20,78 @@ class TransactionsService:
             None
         """
         self.db = connection.get_database(db_name)
+        self.transactions_collection = self.db['transactions']
+        self.customers_collection = self.db['customers']
         self.accounts_collection = self.db['accounts']
-        self.transactions_collection = self.db['internal_transactions']
-        self.users_collection = self.db['users']
-        self.notifications_collection = self.db['notifications']
+
+    def _resolve_customer(self, user_identifier: Union[str, ObjectId]) -> Union[dict, None]:
+        """Resolve a user identifier (userName, ObjectId, or customerId) to a customer doc."""
+        if isinstance(user_identifier, ObjectId):
+            query = {"_id": user_identifier}
+        elif isinstance(user_identifier, str) and user_identifier.startswith("CUST-"):
+            query = {"customerId": user_identifier}
+        else:
+            query = {"identification.userName": user_identifier}
+        return self.customers_collection.find_one(query, {"customerId": 1})
+
+    def _account_ids_for_customer(self, customer_id: str) -> list[str]:
+        """Return the BIAN accountId list owned by a customer."""
+        accounts = self.accounts_collection.find(
+            {"customerSnapshot.customerId": customer_id}, {"accountId": 1})
+        return [acct["accountId"] for acct in accounts if acct.get("accountId")]
 
     def is_valid_user(self, user_identifier: Union[str, ObjectId]) -> bool:
-        """Check if the user exists in the system.
+        """Check if the customer exists in the system.
         Args:
-            user_identifier (Union[str, ObjectId]): The user identifier (username or ObjectId of the user).
+            user_identifier (Union[str, ObjectId]): userName, ObjectId, or customerId.
         Returns:
-            bool: True if the user exists, False otherwise.
+            bool: True if the customer exists, False otherwise.
         """
-        if isinstance(user_identifier, ObjectId):
-            user_query = {"_id": user_identifier}
-        else:
-            user_query = {"UserName": user_identifier}
-        user = self.users_collection.find_one(user_query, {"_id": 1})
-        return user is not None
+        return self._resolve_customer(user_identifier) is not None
 
-    def get_all_transactions_for_user(self, user_name: str) -> list[dict]:
-        """Get all transactions for a user from the transactions collection.
+    def get_all_transactions_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
+        """Get all transactions for a customer (both incoming and outgoing).
 
-        Unlike get_recent_transactions_for_user (which reads the user's RecentTransactions
-        array limited to 20), this queries the transactions collection directly for ALL
-        transaction records — both CREDIT (income) and DEBIT (spending) from checking
-        and credit card accounts.
+        Under the BIAN schema, transactions reference parties by accountId, so this
+        resolves the customer's accounts first, then matches on payer/payee accountId.
 
         Args:
-            user_name (str): The UserName of the user.
+            user_identifier (Union[str, ObjectId]): userName, ObjectId, or customerId.
 
         Returns:
-            list[dict]: All transactions for the user, sorted by date descending.
+            list[dict]: All transactions for the customer, sorted by bookingDate descending.
         """
+        customer = self._resolve_customer(user_identifier)
+        if not customer:
+            logger.info(f"No customer found for identifier {user_identifier}")
+            return []
+
+        account_ids = self._account_ids_for_customer(customer["customerId"])
+        if not account_ids:
+            return []
+
         transactions = list(self.transactions_collection.find({
             "$or": [
-                {"Dbtr.Nm": user_name},
-                {"Cdtr.Nm": user_name}
+                {"payer.accountId": {"$in": account_ids}},
+                {"payee.accountId": {"$in": account_ids}},
             ]
         }))
 
-        # Sort by booking date descending
-        transactions.sort(key=lambda x: _ensure_aware(x.get("BookgDt")), reverse=True)
+        # Sort by booking date descending (BIAN bookingDate is an ISO date string)
+        transactions.sort(key=lambda x: x.get("bookingDate") or "", reverse=True)
 
-        logger.info(f"Retrieved {len(transactions)} total transactions for user {user_name}")
+        logger.info(f"Retrieved {len(transactions)} total transactions for {customer['customerId']}")
         return transactions
 
     def get_recent_transactions_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
-        """Get the recent transactions for a specific user by UserName or ID.
-        Args:
-            user_identifier (Union[str, ObjectId]): The UserName or ID of the user.
-        Returns:
-            list[dict]: A list of recent transactions for the user.
-        """
-        # Determining if the identifier is an ObjectId or a username
-        if isinstance(user_identifier, ObjectId):
-            user_query = {"_id": user_identifier}
-        else:
-            user_query = {"UserName": user_identifier}
-        # Fetching the user document
-        user = self.users_collection.find_one(
-            user_query, {"RecentTransactions": 1})
-        if not user or "RecentTransactions" not in user:
-            logger.info(
-                f"No recent transactions found for user {user_identifier}")
-            return []
-        # Extracting the recent transaction IDs, sorted by date descending and limited to 20
-        recent_transactions = sorted(
-            user["RecentTransactions"], key=lambda x: x["Date"], reverse=True)[:20]
-        transaction_ids = [txn["TransactionId"] for txn in recent_transactions]
-        # Fetching the transaction details from the transactions collection
-        transactions = list(self.transactions_collection.find(
-            {"_id": {"$in": transaction_ids}}))
-        # Sort by booking date descending
-        transactions.sort(key=lambda x: _ensure_aware(x.get("BookgDt")), reverse=True)
-        return transactions
+        """Get the 20 most recent transactions for a customer.
 
-    def perform_transaction(self, account_id_receiver: str, account_id_sender: str,
-                            transaction_amount: float, sender_user_id: str, sender_user_name: str,
-                            sender_account_number: str, sender_account_type: str, receiver_user_id: str,
-                            receiver_user_name: str, receiver_account_number: str, receiver_account_type: str,
-                            transaction_type: str, transaction_description: Optional[str] = "N/A", payment_method: Optional[str] = "N/A") -> ObjectId:
-        """Perform a transaction between two accounts.
+        The legacy RecentTransactions[] array no longer exists under the BIAN schema,
+        so this returns the latest 20 transactions by bookingDate.
 
         Args:
-            account_id_receiver (str): The ID of the receiver's account.
-            account_id_sender (str): The ID of the sender's account.
-            transaction_amount (float): The amount to transfer.
-            sender_user_id (str): The ID of the sender user.
-            sender_user_name (str): The name of the sender user.
-            sender_account_number (str): The account number of the sender.
-            sender_account_type (str): The account type of the sender.
-            receiver_user_id (str): The ID of the receiver user.
-            receiver_user_name (str): The name of the receiver user.
-            receiver_account_number (str): The account number of the receiver.
-            receiver_account_type (str): The account type of the receiver.
-            transaction_type (str): The type of transaction (e.g., AccountTransfer, DigitalPayment).
-            transaction_description (str, Optional): The description of the transaction.
-            payment_method (str, Optional): The payment method used if the transaction is a DigitalPayment.
-
+            user_identifier (Union[str, ObjectId]): userName, ObjectId, or customerId.
         Returns:
-            ObjectId: The ID of the transaction document if the transaction is successful, None otherwise
+            list[dict]: Up to 20 recent transactions, sorted by bookingDate descending.
         """
-
-        # In Python, type hints (like float in function signature) are not enforced at runtime.
-        # This means that even if you specify transaction_amount: float, the actual value passed to the function can still be an integer if it's not explicitly converted to a float.
-        # Ensure transaction_amount is a float
-        # Validate that transaction_amount is a float
-        try:
-            transaction_amount = float(transaction_amount)
-        except ValueError:
-            logger.error("Transaction amount must be a float.")
-            return None
-
-        # Check if the transaction amount is valid
-        if transaction_amount <= 0:
-            logger.error("Transaction amount must be greater than 0.")
-            return None
-
-        transaction_limit = float(500)
-
-        # Check if the transaction amount exceeds the limit
-        if transaction_amount > transaction_limit:
-            logger.error(
-                f"Transaction amount exceeds the limit of {transaction_limit}.")
-            return None
-
-        # Retrieve and validate sender account details
-        sender_account = self.accounts_collection.find_one(
-            {"_id": ObjectId(account_id_sender)})
-        if not sender_account:
-            logger.error("Sender account not found.")
-            return None
-        if sender_account["AccountBalance"] < transaction_amount:
-            logger.error("Insufficient funds in sender account.")
-            return None
-        if sender_account["AccountStatus"] == "Closed":
-            logger.error("Sender account is closed.")
-            return None
-        if (sender_account["AccountNumber"] != sender_account_number or
-                sender_account["AccountType"] != sender_account_type):
-            logger.error("Sender account details do not match.")
-            return None
-
-        # Retrieve and validate sender user details
-        sender_user = self.users_collection.find_one(
-            {"_id": ObjectId(sender_user_id)})
-        if not sender_user or sender_user["UserName"] != sender_user_name:
-            logger.error("Sender user details do not match.")
-            return None
-
-        # Retrieve and validate receiver account details
-        receiver_account = self.accounts_collection.find_one(
-            {"_id": ObjectId(account_id_receiver)})
-        if not receiver_account:
-            logger.error("Receiver account not found.")
-            return None
-        if receiver_account["AccountStatus"] == "Closed":
-            logger.error("Receiver account is closed.")
-            return None
-        if (receiver_account["AccountNumber"] != receiver_account_number or
-                receiver_account["AccountType"] != receiver_account_type):
-            logger.error("Receiver account details do not match.")
-            return None
-
-        # Retrieve and validate receiver user details
-        receiver_user = self.users_collection.find_one(
-            {"_id": ObjectId(receiver_user_id)})
-        if not receiver_user or receiver_user["UserName"] != receiver_user_name:
-            logger.error("Receiver user details do not match.")
-            return None
-
-        # Same-account check — validate before entering the transaction callback
-        if account_id_sender == account_id_receiver:
-            logger.error("Cannot transfer to the same account!")
-            return None
-
-        def callback(session: ClientSession):
-            # Create the transaction document
-
-            transaction_internal = False
-
-            if sender_user_name == receiver_user_name and sender_account_number != receiver_account_number:
-                transaction_internal = True
-
-            now = datetime.now(timezone.utc)
-
-            transaction = {
-                "Acct": {
-                    "Id": sender_account_number,
-                    "Tp": _ACCT_TYPE_MAP.get(sender_account_type, "CACC"),
-                    "Svcr": "Leafy Bank",
-                },
-                "Dbtr": {
-                    "Nm": sender_user_name,
-                    "Id": ObjectId(sender_user_id),
-                    "Acct": {
-                        "Id": ObjectId(account_id_sender),
-                        "Tp": _ACCT_TYPE_MAP.get(sender_account_type, "CACC"),
-                    },
-                },
-                "Cdtr": {
-                    "Nm": receiver_user_name,
-                    "Id": ObjectId(receiver_user_id),
-                    "Acct": {
-                        "Id": ObjectId(account_id_receiver),
-                        "Tp": _ACCT_TYPE_MAP.get(receiver_account_type, "CACC"),
-                    },
-                },
-                "Amt": {"value": transaction_amount, "Ccy": "USD"},
-                "CdtDbtInd": "DBIT",
-                "Sts": "PDNG",
-                "BookgDt": now,
-                "ValDt": now,
-                "AddtlNtryInf": transaction_description,
-                "BkTxCd": _BKTXCD_MAP.get(transaction_type, {"Domn": "PMNT", "Fmly": "OTHR", "SubFmly": "OTHR"}),
-                "Refs": {
-                    "EndToEndId": f"{transaction_type[:3].upper()}{str(ObjectId())[-6:].upper()}",
-                    "AcctSvcrRef": f"LB-{str(ObjectId())[-12:].upper()}",
-                },
-                "IntrnlTxn": transaction_internal,
-                "TxTp": transaction_type,
-            }
-
-            # Add payment method if it's a DigitalPayment
-            if transaction_type == "DigitalPayment" and payment_method and payment_method != "N/A":
-                transaction["PmtMtd"] = payment_method
-
-            # Update sender account: subtract transaction amount from balance
-            sender_result = self.accounts_collection.find_one_and_update(
-                {"_id": ObjectId(account_id_sender)},
-                {
-                    "$inc": {"AccountBalance": -transaction_amount}
-                },
-                session=session,
-                return_document=True
-            )
-            # Update receiver account: add transaction amount to balance
-            receiver_result = self.accounts_collection.find_one_and_update(
-                {"_id": ObjectId(account_id_receiver)},
-                {
-                    "$inc": {"AccountBalance": transaction_amount}
-                },
-                session=session,
-                return_document=True
-            )
-
-            # Add new transaction to 'internal_transactions' collection
-            transaction_id = self.transactions_collection.insert_one(
-                transaction, session=session).inserted_id
-
-            # Update the transaction document with the completed status (ISO 20022)
-            self.transactions_collection.update_one(
-                {"_id": transaction_id},
-                {
-                    "$set": {
-                        "Sts": "BOOK",
-                        "ValDt": datetime.now(timezone.utc),
-                    }
-                },
-                session=session
-            )
-
-            # Update RecentTransactions
-            if transaction_internal:
-                # Internal transaction, update only once
-                self.users_collection.update_one(
-                    {"_id": ObjectId(sender_user_id)},
-                    {
-                        "$push": {
-                            "RecentTransactions": {
-                                "$each": [{"TransactionId": transaction_id, "Date": datetime.now(timezone.utc)}],
-                                "$slice": -20
-                            }
-                        }
-                    },
-                    session=session
-                )
-            else:
-                # Update RecentTransactions for sender
-                self.users_collection.update_one(
-                    {"_id": ObjectId(sender_user_id)},
-                    {
-                        "$push": {
-                            "RecentTransactions": {
-                                "$each": [{"TransactionId": transaction_id, "Date": datetime.now(timezone.utc)}],
-                                "$slice": -20
-                            }
-                        }
-                    },
-                    session=session
-                )
-                # Update RecentTransactions for receiver
-                self.users_collection.update_one(
-                    {"_id": ObjectId(receiver_user_id)},
-                    {
-                        "$push": {
-                            "RecentTransactions": {
-                                "$each": [{"TransactionId": transaction_id, "Date": datetime.now(timezone.utc)}],
-                                "$slice": -20
-                            }
-                        }
-                    },
-                    session=session
-                )
-
-            # Create notifications
-            notification_date = datetime.now(timezone.utc)
-
-            notification_accounts = {
-                "AccountIdSender": ObjectId(account_id_sender),
-                "AccountNumberSender": sender_account_number,
-                "AccountTypeSender": sender_account_type,
-                "AccountIdReceiver": ObjectId(account_id_receiver),
-                "AccountNumberReceiver": receiver_account_number,
-                "AccountTypeReceiver": receiver_account_type
-            }
-            if transaction_internal:
-                # Internal transaction, create a single notification
-                notification = {
-                    "NotificationEvent": "InternalTransfer",
-                    "NotificationMessage": f"You have transferred {sender_result['AccountCurrency']} {transaction_amount} internally!",
-                    "NotificationDate": notification_date,
-                    "NotificationUser": {
-                        "UserName": sender_user_name,
-                        "UserId": ObjectId(sender_user_id)
-                    },
-                    "NotificationTransaction": {
-                        "TransactionId": transaction_id
-                    },
-                    "NotificationAccounts": notification_accounts
-                }
-                self.notifications_collection.insert_one(notification, session=session)
-            else:
-                # Create separate notifications for sender and receiver
-                if transaction_type == "AccountTransfer":
-                    sender_notification = {
-                        "NotificationEvent": "TransferSent",
-                        "NotificationMessage": f"You have transferred {sender_result['AccountCurrency']} {transaction_amount} to {receiver_user_name}. Your new balance is {sender_result['AccountCurrency']} {sender_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": sender_user_name,
-                            "UserId": ObjectId(sender_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                    receiver_notification = {
-                        "NotificationEvent": "TransferReceived",
-                        "NotificationMessage": f"You have received a transfer of {receiver_result['AccountCurrency']} {transaction_amount} from {sender_user_name}. Your new balance is {receiver_result['AccountCurrency']} {receiver_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": receiver_user_name,
-                            "UserId": ObjectId(receiver_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                else:  # Assuming the other type is DigitalPayment
-                    sender_notification = {
-                        "NotificationEvent": "PaymentMade",
-                        "NotificationMessage": f"You have made a payment of {sender_result['AccountCurrency']} {transaction_amount} to {receiver_user_name} using {payment_method}. Your new balance is {sender_result['AccountCurrency']} {sender_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": sender_user_name,
-                            "UserId": ObjectId(sender_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                    receiver_notification = {
-                        "NotificationEvent": "PaymentReceived",
-                        "NotificationMessage": f"You have received a payment of {receiver_result['AccountCurrency']} {transaction_amount} from {sender_user_name} via {payment_method}. Your new balance is {receiver_result['AccountCurrency']} {receiver_result['AccountBalance']}.",
-                        "NotificationDate": notification_date,
-                        "NotificationUser": {
-                            "UserName": receiver_user_name,
-                            "UserId": ObjectId(receiver_user_id)
-                        },
-                        "NotificationTransaction": {
-                            "TransactionId": transaction_id
-                        },
-                        "NotificationAccounts": notification_accounts
-                    }
-                self.notifications_collection.insert_many([sender_notification, receiver_notification], session=session)
-
-            # Update the transaction document with the notification date (ISO 20022)
-            self.transactions_collection.update_one(
-                {"_id": transaction_id},
-                {
-                    "$set": {
-                        "NtfctnDt": datetime.now(timezone.utc),
-                    }
-                },
-                session=session
-            )
-
-            logger.info("Transaction completed!")
-            return transaction_id
-
-        # Start a client session and execute the transaction
-        with self.db.client.start_session() as session:
-            # Ensure multi-document ACID transactions:
-            # 1. Atomicity:
-            #    - The `with_transaction` method is used to execute a series of operations as a single transaction.
-            #    - If any operation within the transaction fails, all operations are rolled back, ensuring atomicity.
-            #
-            # 2. Consistency:
-            #    - MongoDB ensures the database transitions from one consistent state to another during the transaction.
-            #    - Operations like updating account balances and inserting transaction documents preserve data integrity.
-            #
-            # 3. Isolation:
-            #    - The transaction operates in an isolated environment.
-            #    - Changes are not visible to other operations until the transaction is successfully committed.
-            #
-            # 4. Durability:
-            #    - Transaction changes are written to the oplog of the replica set.
-            #    - Once committed, changes are durable and can endure server failures.
-            #
-            # - The code uses a callback function with `session.with_transaction(callback)` to execute the transaction.
-            # - This includes multiple updates and inserts across different collections (accounts, transactions, users, notifications).
-            # - Wrapping operations in a transaction ensures execution with ACID properties.
-            #
-            # For more details, see: https://www.mongodb.com/products/capabilities/transactions
-            try:
-                transaction_id = session.with_transaction(callback)
-                return transaction_id
-            except Exception as e:
-                logger.error(f"Transaction failed: {e}")
-                return None
+        return self.get_all_transactions_for_user(user_identifier)[:20]

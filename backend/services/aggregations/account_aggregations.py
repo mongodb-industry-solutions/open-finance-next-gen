@@ -19,13 +19,17 @@ class AccountAggregations:
             db2_name, collection2_name
         )
 
-    def _aggregate_internal_account_balances(self, user_id: ObjectId) -> float:
-        """Aggregate total balance for internal accounts for a specific user."""
+    def _aggregate_internal_account_balances(self, customer_id: str) -> float:
+        """Aggregate total balance for internal (BIAN) accounts for a specific customer.
+
+        Internal accounts follow the BIAN schema: owner is `customerSnapshot.customerId`
+        and the balance lives at `balance.current`.
+        """
         pipeline = [
-            {'$match': {'AccountUser.UserId': user_id}},  # Match only by user_id
-            {'$group': {'_id': None, 'TotalBalance': {'$sum': '$AccountBalance'}}}
+            {'$match': {'customerSnapshot.customerId': customer_id}},
+            {'$group': {'_id': None, 'TotalBalance': {'$sum': '$balance.current'}}}
         ]
-        logger.info(f"Aggregating internal accounts for user: {user_id}")
+        logger.info(f"Aggregating internal accounts for customer: {customer_id}")
         result_aggregate = list(self.accounts_collection.aggregate(pipeline))
 
         total_balance = result_aggregate[0]['TotalBalance'] if result_aggregate else 0
@@ -58,19 +62,26 @@ class AccountAggregations:
         logger.info(f"Total External Balance: {total_balance}")
         return total_balance  # Return the total external balance
 
-    def get_user_account_balances(self, user_id: str, connected_external_accounts: Optional[List[str]] = None) -> dict:
-        """Get aggregated total balance for internal and external accounts."""
-        user_id_obj = ObjectId(user_id)
+    def get_user_account_balances(self, customer_id: str, user_id: str, connected_external_accounts: Optional[List[str]] = None) -> dict:
+        """Get aggregated total balance for internal and external accounts.
 
-        # Step 1: Aggregate balances for internal accounts
+        Internal (leafy_bank, BIAN) accounts join on `customer_id`; external accounts
+        (unmigrated open_finance schema) still join on the user ObjectId.
+
+        Args:
+            customer_id (str): The BIAN customerId for internal accounts.
+            user_id (str): The user ObjectId (string) for external accounts.
+            connected_external_accounts (Optional[List[str]]): External account IDs to include.
+        """
+        # Step 1: Aggregate balances for internal accounts (BIAN schema)
         internal_total_balance = self._aggregate_internal_account_balances(
-            user_id_obj)
+            customer_id)
 
         # Step 2: Aggregate balances for specified external accounts (if provided)
         external_total_balance = 0
         if connected_external_accounts:
             external_total_balance = self._aggregate_external_account_balances(
-                user_id_obj, connected_external_accounts
+                ObjectId(user_id), connected_external_accounts
             )
 
         # Step 3: Compute total balance (internal + external)

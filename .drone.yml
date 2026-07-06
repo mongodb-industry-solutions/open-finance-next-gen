@@ -47,25 +47,25 @@ steps:
       event:
         - pull_request
 
-  - name: helm-dry-run-staging
-    image: public.ecr.aws/kanopy/drone-helm:v3
-    settings:
-      dry_run: true
-      chart: mongodb/web-app
-      chart_version: 4.30.0
-      add_repos: [mongodb=https://10gen.github.io/helm-charts]
-      namespace: industrysolutions
-      release: open-finance-next-gen
-      values:
-        - "image.tag=test"
-        - "image.repository=test"
-      api_server: https://api.staging.corp.mongodb.com
-      kubernetes_token:
-        from_secret: stag_kub_pr_token
-      values_files: ["environment/staging.yaml"]
-    when:
-      event:
-        - pull_request
+  # - name: helm-dry-run-staging
+  #   image: public.ecr.aws/kanopy/drone-helm:v3
+  #   settings:
+  #     dry_run: true
+  #     chart: mongodb/web-app
+  #     chart_version: 4.30.0
+  #     add_repos: [mongodb=https://10gen.github.io/helm-charts]
+  #     namespace: industrysolutions
+  #     release: open-finance-next-gen
+  #     values:
+  #       - "image.tag=test"
+  #       - "image.repository=test"
+  #     api_server: https://api.staging.corp.mongodb.com
+  #     kubernetes_token:
+  #       from_secret: stag_kub_pr_token
+  #     values_files: ["environment/staging.yaml"]
+  #   when:
+  #     event:
+  #       - pull_request
 
 ---
 kind: pipeline

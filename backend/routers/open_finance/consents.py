@@ -11,6 +11,7 @@ from utils.security import sanitize_log_input
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
 from services.internal.users_service import UsersService
+from routers.open_finance.customer_data import cached_data_service
 from encoder.json_encoder import MyJSONEncoder
 
 import os
@@ -29,21 +30,22 @@ encrypted_connection = get_encrypted_mongo_connection()
 OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
 
 # Collection names
-CONSENTS_COLLECTION = "encrypted_consents"
+CONSENTS_COLLECTION = "openBankingConsents"
 INSTITUTIONS_COLLECTION = "institutions"
 
-# Initialize UsersService for user lookups (users are in leafy_bank database)
+# Initialize UsersService for customer lookups (customers are in leafy_bank database)
 connection = get_mongo_connection()
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
-USERS_COLLECTION = "users"
-users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
+CUSTOMERS_COLLECTION = "customers"
+users_service = UsersService(connection, LEAFYBANK_DB_NAME, CUSTOMERS_COLLECTION)
 
 # Initialize the ConsentService with encrypted connection
 consent_service = ConsentService(
     encrypted_connection,
-    OPENFINANCE_DB_NAME,
+    LEAFYBANK_DB_NAME,
     CONSENTS_COLLECTION,
-    INSTITUTIONS_COLLECTION
+    INSTITUTIONS_COLLECTION,
+    institutions_db_name=OPENFINANCE_DB_NAME
 )
 
 # Define a rate limiter
@@ -53,7 +55,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Define Pydantic Models
 class CreateConsentRequest(BaseModel):
     consumer_id: str  # UserName or UserId - validated against bearer token
-    purpose: Optional[str] = None  # None = general access (all permissions). Or: PERSONAL_LOAN_PORTABILITY | PAYROLL_LOAN_PORTABILITY | VEHICLE_LOAN_PORTABILITY | FINANCIAL_ADVICE
+    purpose: Optional[str] = None  # None = general access (all permissions). Or: FINANCIAL_ADVICE
     source_institution_name: str  # must match an existing institution's InstitutionName
     expiration_days: int  # Required: 3-12 (treated as minutes in demo mode)
     permissions: Optional[List[str]] = None  # Optional: subset of purpose's default permissions. Auto-assigned if omitted.
@@ -90,7 +92,7 @@ async def create_consent(
     Create a new consent for data sharing. Requires bearer token authentication.
 
     The source_institution_name must be a valid institution in the system.
-    Valid purposes: PERSONAL_LOAN_PORTABILITY, PAYROLL_LOAN_PORTABILITY, VEHICLE_LOAN_PORTABILITY, FINANCIAL_ADVICE
+    Valid purposes: FINANCIAL_ADVICE
     Or omit purpose (null) for general access — grants all permissions.
 
     Permissions are auto-assigned based on purpose (or all permissions if no purpose).
@@ -366,6 +368,9 @@ async def revoke_consent(
 
         if not updated_consent:
             raise HTTPException(status_code=500, detail="Failed to revoke consent.")
+
+        # Purge any cached external data for this consent (idempotent)
+        cached_data_service.purge_consent_data(consent_id)
 
         return Response(
             content=json.dumps({"consent": updated_consent}, cls=MyJSONEncoder),

@@ -12,13 +12,14 @@ class ConsentValidator:
     def __init__(self, connection: MongoDBConnection, db_name: str, consents_collection_name: str):
         self.consents_collection = connection.get_collection(db_name, consents_collection_name)
 
-    def validate_consent(self, consent_id: str, user_name: str, required_permission: str) -> tuple:
+    def validate_consent(self, consent_id: str, user_name: str, required_permission: str = None) -> tuple:
         """Validate a consent for data retrieval.
 
         Args:
             consent_id: The ConsentId to validate.
             user_name: The requesting user's UserName.
-            required_permission: The permission required (e.g. CUSTOMER_IDENTIFICATION_READ).
+            required_permission: The permission required (e.g. LOANS_READ). When None,
+                the permission check is skipped (caller gates each data source itself).
 
         Returns:
             tuple: (consent_doc, source_institution_name)
@@ -60,7 +61,7 @@ class ConsentValidator:
 
         # Check required permission
         permissions = consent.get("Permissions", [])
-        if required_permission not in permissions:
+        if required_permission is not None and required_permission not in permissions:
             raise ValueError(
                 f"Consent '{consent_id}' is missing required permission: {required_permission}."
             )
@@ -107,8 +108,10 @@ class ConsentValidator:
         """
         if consent.get("ConsentType") == "ONE_TIME":
             now = datetime.now(timezone.utc)
+            # Atomic filter on Status=AUTHORISED prevents double-consumption from
+            # concurrent requests (TOCTOU race).
             self.consents_collection.update_one(
-                {"ConsentId": consent["ConsentId"]},
+                {"ConsentId": consent["ConsentId"], "Status": "AUTHORISED"},
                 {
                     "$set": {"Status": "CONSUMED", "StatusUpdateDateTime": now},
                     "$push": {"StatusHistory": {
