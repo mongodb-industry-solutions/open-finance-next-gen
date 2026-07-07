@@ -248,6 +248,11 @@ async def retrieve_cached_data(
         None, description="Restrict to ACCOUNT, PRODUCT, or TRANSACTION"
     ),
     consent_id: Optional[str] = Query(None, description="Restrict to a single consent (one bank)"),
+    consent_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated ConsentIds to restrict to the current browser "
+                    "session's banks (prevents cross-session duplicate data)."
+    ),
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
@@ -268,10 +273,16 @@ async def retrieve_cached_data(
                 detail="Unauthorized: Bearer token does not match the requested user."
             )
 
+        consent_id_list = (
+            [c for c in (cid.strip() for cid in consent_ids.split(",")) if c]
+            if consent_ids is not None else None
+        )
+
         result = cached_data_service.read_cached_data(
             user_name=user_auth['UserName'],
             resource_type=resource_type,
             consent_id=consent_id,
+            consent_ids=consent_id_list,
         )
 
         return Response(
@@ -291,6 +302,11 @@ async def retrieve_cached_data(
 async def retrieve_global_position(
     request: Request,
     user_identifier: str,
+    consent_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated ConsentIds to restrict the external position to the "
+                    "current browser session's banks (prevents double-counting)."
+    ),
     bearer_token: str = Depends(get_bearer_token),
     auth: Auth = Depends(get_auth)
 ):
@@ -320,9 +336,15 @@ async def retrieve_global_position(
                 customer_id=customer_id, user_id=None
             )["total_balance"]
 
+        consent_id_list = (
+            [c for c in (cid.strip() for cid in consent_ids.split(",")) if c]
+            if consent_ids is not None else None
+        )
+
         result = cached_data_service.compute_global_position(
             user_name=user_auth['UserName'],
             internal_balance=internal_balance,
+            consent_ids=consent_id_list,
         )
 
         return Response(

@@ -59,6 +59,7 @@ class CreateConsentRequest(BaseModel):
     source_institution_name: str  # must match an existing institution's InstitutionName
     expiration_days: int  # Required: 3-12 (treated as minutes in demo mode)
     permissions: Optional[List[str]] = None  # Optional: subset of purpose's default permissions. Auto-assigned if omitted.
+    session_id: Optional[str] = None  # Browser-session key (chat thread_id). Scopes duplicate detection per session.
 
 
 class UpdateStatusRequest(BaseModel):
@@ -119,7 +120,8 @@ async def create_consent(
             purpose=consent_data.purpose,
             source_institution_name=consent_data.source_institution_name,
             expiration_days=consent_data.expiration_days,
-            permissions=consent_data.permissions
+            permissions=consent_data.permissions,
+            session_id=consent_data.session_id
         )
 
         return Response(
