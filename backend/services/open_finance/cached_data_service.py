@@ -102,6 +102,7 @@ class CachedDataService:
         user_name: str,
         resource_type: str = None,
         consent_id: str = None,
+        consent_ids: List[str] = None,
     ) -> Dict:
         """Read a user's cached external data, grouped by source institution.
 
@@ -112,6 +113,9 @@ class CachedDataService:
             user_name (str): The username whose cached data to return.
             resource_type (str, optional): Restrict to ACCOUNT / PRODUCT / TRANSACTION.
             consent_id (str, optional): Restrict to a single consent (one bank).
+            consent_ids (List[str], optional): Restrict to a set of consents — used by
+                the dashboard to show only the current browser session's connected banks,
+                preventing cross-session duplicate data. Takes precedence over consent_id.
 
         Returns:
             Dict: {"user_identifier", "institutions": [{institution, consent_id,
@@ -120,7 +124,9 @@ class CachedDataService:
         query: Dict = {"UserName": user_name}
         if resource_type:
             query["ResourceType"] = resource_type
-        if consent_id:
+        if consent_ids is not None:
+            query["ConsentId"] = {"$in": consent_ids}
+        elif consent_id:
             query["ConsentId"] = consent_id
 
         # One entry per (institution, consent) pair, keyed for grouping.
@@ -141,7 +147,9 @@ class CachedDataService:
 
         return {"user_identifier": user_name, "institutions": list(grouped.values())}
 
-    def compute_global_position(self, user_name: str, internal_balance: float = 0.0) -> Dict:
+    def compute_global_position(
+        self, user_name: str, internal_balance: float = 0.0, consent_ids: List[str] = None
+    ) -> Dict:
         """Compute total balance, total debt, and net worth across all connected banks.
 
         External balance = sum of AccountBalance across cached accounts. External debt =
@@ -153,11 +161,14 @@ class CachedDataService:
         Args:
             user_name (str): The username whose global position to compute.
             internal_balance (float): Total balance of the user's internal Leafy Bank accounts.
+            consent_ids (List[str], optional): Restrict the external position to a set of
+                consents (the current browser session's banks), matching the dashboard's
+                cached-data view so totals never double-count cross-session duplicates.
 
         Returns:
             Dict: {"total_balance", "total_debt", "net_worth", "by_institution": [...]}.
         """
-        cached = self.read_cached_data(user_name)
+        cached = self.read_cached_data(user_name, consent_ids=consent_ids)
 
         by_institution: List[Dict] = []
         total_balance = internal_balance
