@@ -221,17 +221,25 @@ class CachedDataService:
             logger.info(f"Purged {deleted} cached document(s) for consent {consent_id}")
         return {"cachedExternalData": deleted}
 
+    # Static demo transactions are compressed into this many days ending near today,
+    # so they interleave with recent internal activity instead of fanning back months.
+    _DEMO_WINDOW_DAYS = 21
+
     @staticmethod
     def _shift_transaction_dates(transactions: List[Dict]) -> None:
-        """Re-date a batch of transactions in place so the newest lands near today.
+        """Re-date a batch of transactions in place, compressing them into a recent window.
 
-        Applies a single whole-day delta to every transaction, preserving the original
-        spacing and ordering. The delta maps the most recent bookingDate to a random
-        point in the last few days, so repeated pulls of the same static demo data
-        always look freshly recent (and vary run to run). No-op on an empty batch.
+        The original set spans months; the dashboard shows only the most recent rows,
+        so spread-out external data gets buried under dense internal activity. This maps
+        the whole batch proportionally into the last _DEMO_WINDOW_DAYS (newest near today,
+        oldest ~3 weeks back), preserving order. A per-pull day of jitter on the end date
+        keeps repeated pulls of the same static data looking freshly recent. No-op on an
+        empty batch.
 
-        Shifted fields per transaction: valueDate, bookingDate (string "YYYY-MM-DD"),
-        createdAt (datetime), and every transactionDates[].date (datetime).
+        Each transaction moves by a single whole-day delta (derived from its bookingDate)
+        applied to all its date fields, so a transaction stays internally consistent:
+        valueDate, bookingDate (string "YYYY-MM-DD"), createdAt (datetime), and every
+        transactionDates[].date (datetime).
         """
         if not transactions:
             return
@@ -246,25 +254,30 @@ class CachedDataService:
                     return None
             return None
 
-        # Anchor on the newest bookingDate across the batch.
-        newest = max(
-            (d for d in (parse_day(t.get("bookingDate")) for t in transactions) if d),
-            default=None,
-        )
-        if newest is None:
+        days = [parse_day(t.get("bookingDate")) for t in transactions]
+        present = [d.date() for d in days if d]
+        if not present:
             return
 
-        # Target the newest txn at today minus 0-3 days of jitter (varies each pull).
-        target = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=random.randint(0, 3))
-        delta = timedelta(days=(target.date() - newest.date()).days)
-        if delta.days == 0:
-            return
+        oldest, newest = min(present), max(present)
+        span = (newest - oldest).days  # 0 when all transactions share one day
 
-        for txn in transactions:
+        window = CachedDataService._DEMO_WINDOW_DAYS
+        end = datetime.now(timezone.utc).date() - timedelta(days=random.randint(0, 1))
+        start = end - timedelta(days=window)
+
+        for txn, original in zip(transactions, days):
+            if not original:
+                continue
+            # Position within the original span (1.0 = newest), mapped into [start, end].
+            fraction = 1.0 if span == 0 else (original.date() - oldest).days / span
+            target = start + timedelta(days=round(fraction * window))
+            delta = timedelta(days=(target - original.date()).days)
+
             for field in ("valueDate", "bookingDate"):
-                original = parse_day(txn.get(field))
-                if original:
-                    txn[field] = (original + delta).strftime("%Y-%m-%d")
+                field_date = parse_day(txn.get(field))
+                if field_date:
+                    txn[field] = (field_date + delta).strftime("%Y-%m-%d")
             if isinstance(txn.get("createdAt"), datetime):
                 txn["createdAt"] = txn["createdAt"] + delta
             for entry in (txn.get("transactionDates") or []):
