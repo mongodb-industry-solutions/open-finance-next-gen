@@ -33,7 +33,7 @@ if not MONGODB_URI:
     print("ERROR: MONGODB_URI not set in backend/.env")
     sys.exit(1)
 
-DB_NAME = os.getenv("LEAFYBANK_DB_NAME", "leafy_bank_test")
+DB_NAME = os.getenv("LEAFYBANK_DB_NAME", "leafy_bank_bian")
 COLL_NAME = "openBankingConsents"
 KEY_VAULT_NAMESPACE = "encryption.__keyVault_consents"
 MASTER_KEY_PATH = BACKEND_DIR / "master-key.bin"

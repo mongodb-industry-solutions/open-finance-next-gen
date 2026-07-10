@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timezone
+import random
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from pymongo import ASCENDING
@@ -73,6 +74,11 @@ class CachedDataService:
 
         source_institution = result.get("source_institution")
         cached_at = datetime.now(timezone.utc)
+
+        # Demo freshness: static source transactions get re-dated on every pull so the
+        # dashboard always shows recent activity. Mutates the cached copy only — the
+        # source external_transactions collection is untouched.
+        self._shift_transaction_dates(result.get("transactions") or [])
 
         # Refresh semantics: clear any prior cache for this consent, then re-insert.
         # Keeps the cache idempotent across repeated fetches for the same consent.
@@ -214,6 +220,56 @@ class CachedDataService:
         if deleted:
             logger.info(f"Purged {deleted} cached document(s) for consent {consent_id}")
         return {"cachedExternalData": deleted}
+
+    @staticmethod
+    def _shift_transaction_dates(transactions: List[Dict]) -> None:
+        """Re-date a batch of transactions in place so the newest lands near today.
+
+        Applies a single whole-day delta to every transaction, preserving the original
+        spacing and ordering. The delta maps the most recent bookingDate to a random
+        point in the last few days, so repeated pulls of the same static demo data
+        always look freshly recent (and vary run to run). No-op on an empty batch.
+
+        Shifted fields per transaction: valueDate, bookingDate (string "YYYY-MM-DD"),
+        createdAt (datetime), and every transactionDates[].date (datetime).
+        """
+        if not transactions:
+            return
+
+        def parse_day(value):
+            if isinstance(value, datetime):
+                return value
+            if isinstance(value, str):
+                try:
+                    return datetime.strptime(value, "%Y-%m-%d")
+                except ValueError:
+                    return None
+            return None
+
+        # Anchor on the newest bookingDate across the batch.
+        newest = max(
+            (d for d in (parse_day(t.get("bookingDate")) for t in transactions) if d),
+            default=None,
+        )
+        if newest is None:
+            return
+
+        # Target the newest txn at today minus 0-3 days of jitter (varies each pull).
+        target = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=random.randint(0, 3))
+        delta = timedelta(days=(target.date() - newest.date()).days)
+        if delta.days == 0:
+            return
+
+        for txn in transactions:
+            for field in ("valueDate", "bookingDate"):
+                original = parse_day(txn.get(field))
+                if original:
+                    txn[field] = (original + delta).strftime("%Y-%m-%d")
+            if isinstance(txn.get("createdAt"), datetime):
+                txn["createdAt"] = txn["createdAt"] + delta
+            for entry in (txn.get("transactionDates") or []):
+                if isinstance(entry.get("date"), datetime):
+                    entry["date"] = entry["date"] + delta
 
     @staticmethod
     def _wrap(consent_id: str, user_name: str, source_institution: str,
