@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict
+from typing import Dict
 from bson import ObjectId
 import logging
 import json
@@ -28,19 +28,15 @@ connection = get_mongo_connection()
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
 
 # Collection names
-USERS_COLLECTION = "users"
+CUSTOMERS_COLLECTION = "customers"
 
 # Initialize the UsersService
-users_service = UsersService(connection, LEAFYBANK_DB_NAME, USERS_COLLECTION)
+users_service = UsersService(connection, LEAFYBANK_DB_NAME, CUSTOMERS_COLLECTION)
 
 # Define a rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
 # Define Pydantic Models
-
-
-class FetchUsersResponse(BaseModel):
-    users: List[Dict]
 
 
 class FindUserRequest(BaseModel):
@@ -52,33 +48,6 @@ class FindUserResponse(BaseModel):
 
 
 # Define the endpoints
-
-# # Endpoint to fetch all users
-# @router.get("/fetch-users", response_model=FetchUsersResponse)
-# @limiter.limit("60/minute")
-# async def fetch_users(
-#     request: Request,
-#     bearer_token: str = Depends(get_bearer_token),
-#     auth: Auth = Depends(get_auth)
-# ):
-#     """
-#     Fetch all users.
-#     """
-#     try:
-#         # Validate Bearer Token and authenticate
-#         user_auth = auth.bearer_token_validation(bearer_token=bearer_token)
-
-#         logging.info(
-#             f"Authenticated User: UserName: {user_auth['UserName']}; UserId: {user_auth['_id']}")
-
-#         users = users_service.get_users()
-#         return Response(content=json.dumps({"users": users}, cls=MyJSONEncoder), media_type="application/json")
-#     except HTTPException as he:
-#         raise he  # Propagate pre-raised HTTPException
-#     except Exception as e:
-#         logging.error(f"Error fetching users: {str(e)}")
-#         raise HTTPException(status_code=500, detail="Internal Server Error")
-
 
 # Endpoint to find a user by their identifier (username or ID)
 @router.post("/find-user", response_model=FindUserResponse)

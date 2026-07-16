@@ -11,49 +11,38 @@ from services.consents.consent_state_machine import (
 logger = logging.getLogger(__name__)
 
 # Purpose -> default permissions mapping
-# All credit portability purposes share the same permission set
-CREDIT_PORTABILITY_PERMISSIONS = [
-    "LOANS_READ",
+ALL_PERMISSIONS = [
     "ACCOUNTS_READ",
     "ACCOUNTS_BALANCES_READ",
-    "REPAYMENT_HISTORY_READ",
-    "CUSTOMER_IDENTIFICATION_READ",
     "TRANSACTIONS_READ",
+    "LOANS_READ",
 ]
 
 PURPOSE_PERMISSIONS = {
-    "PERSONAL_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "PAYROLL_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "VEHICLE_LOAN_PORTABILITY": CREDIT_PORTABILITY_PERMISSIONS,
-    "FINANCIAL_ADVICE": [
-        "ACCOUNTS_READ",
-        "ACCOUNTS_BALANCES_READ",
-        "TRANSACTIONS_READ",
-    ],
+    "FINANCIAL_ADVICE": ALL_PERMISSIONS,
 }
-
-# All available permissions (superset) — used when purpose is None (general access)
-ALL_PERMISSIONS = CREDIT_PORTABILITY_PERMISSIONS
 
 
 class ConsentService:
     """This class provides methods to manage consent lifecycle in the database."""
 
     def __init__(self, connection: MongoDBConnection, db_name: str,
-                 consents_collection_name: str, institutions_collection_name: str):
+                 consents_collection_name: str, institutions_collection_name: str,
+                 institutions_db_name: str = None):
         """Initialize the ConsentService with MongoDB connection and collection names.
 
         Args:
             connection (MongoDBConnection): The MongoDB connection instance.
-            db_name (str): The name of the database.
+            db_name (str): The name of the database holding consents.
             consents_collection_name (str): The name of the consents collection.
             institutions_collection_name (str): The name of the institutions collection.
+            institutions_db_name (str): The name of the database holding institutions. Defaults to db_name.
 
         Returns:
             None
         """
         self.consents_collection = connection.get_collection(db_name, consents_collection_name)
-        self.institutions_collection = connection.get_collection(db_name, institutions_collection_name)
+        self.institutions_collection = connection.get_collection(institutions_db_name or db_name, institutions_collection_name)
 
         # Ensure indexes exist
         self._ensure_indexes()
@@ -63,8 +52,14 @@ class ConsentService:
         try:
             # Unique index on ConsentId
             self.consents_collection.create_index("ConsentId", unique=True)
+            # Non-unique index on the browser-session key (plaintext field) to
+            # support per-session duplicate lookups in create_consent.
+            self.consents_collection.create_index("Session.ThreadId")
             # NOTE: Consumer.UserName index removed — field is encrypted via
             # Queryable Encryption. Equality queries work via QE's internal metadata.
+            # NOTE: SourceInstitution.InstitutionName is encrypted but NOT
+            # queryable (no equality queryType), so it cannot be used in a filter;
+            # duplicate detection filters institution in application code instead.
             # NOTE: TTL index removed — not allowed on QE-encrypted collections.
             # Consent expiration must be checked in application code.
             logger.info("Consent collection indexes ensured")
@@ -96,9 +91,6 @@ class ConsentService:
     # User-facing display durations (real days) by purpose
     # These are shown to the user while the actual expiry uses demo minutes
     DISPLAY_DURATION_DAYS = {
-        "PERSONAL_LOAN_PORTABILITY": 7,
-        "PAYROLL_LOAN_PORTABILITY": 7,
-        "VEHICLE_LOAN_PORTABILITY": 7,
         "FINANCIAL_ADVICE": 14,
         None: 7,  # general access
     }
@@ -110,7 +102,8 @@ class ConsentService:
         purpose: Optional[str],
         source_institution_name: str,
         expiration_days: int = None,
-        permissions: Optional[List[str]] = None
+        permissions: Optional[List[str]] = None,
+        session_id: Optional[str] = None
     ) -> dict:
         """Create a new consent record.
 
@@ -129,6 +122,10 @@ class ConsentService:
                                    Demo mode: non-zero values treated as MINUTES for quick expiry.
             permissions (Optional[List[str]]): Subset of permissions to grant.
                                                If omitted, full default set for the purpose is used.
+            session_id (Optional[str]): Browser-session key (the chat thread_id). When
+                                        provided, an existing active consent for the same
+                                        user + institution + session is returned instead of
+                                        creating a duplicate.
 
         Returns:
             dict: The created consent document.
@@ -193,6 +190,21 @@ class ConsentService:
         if not institution:
             raise ValueError(f"Institution '{source_institution_name}' not found.")
 
+        # Session-scoped duplicate check: reuse an existing active consent for the
+        # same user + institution within the same browser session (chat thread).
+        # InstitutionName is encrypted and non-queryable, so it is filtered in
+        # application code after QE auto-decrypts the returned documents.
+        if session_id:
+            existing = self._find_active_consent(
+                consumer_user_name, source_institution_name, session_id
+            )
+            if existing:
+                logger.info(
+                    f"Reusing existing consent {existing['ConsentId']} for user "
+                    f"{consumer_user_name} / {source_institution_name} in session {session_id}"
+                )
+                return existing
+
         # Generate consent ID
         consent_id = self._generate_consent_id(source_institution_name)
 
@@ -210,6 +222,9 @@ class ConsentService:
             "SourceInstitution": {
                 "InstitutionName": source_institution_name,
                 "InstitutionId": str(institution.get("_id"))
+            },
+            "Session": {
+                "ThreadId": session_id
             },
             "CreationDateTime": now,
             "StatusUpdateDateTime": now,
@@ -235,6 +250,37 @@ class ConsentService:
         logger.info(f"Consent created: {consent_id} for user {consumer_user_name}")
 
         return consent_document
+
+    # Statuses that mean a consent is still usable and should not be duplicated.
+    ACTIVE_STATUSES = ["AWAITING_AUTHORISATION", "AUTHORISED"]
+
+    def _find_active_consent(
+        self, consumer_user_name: str, source_institution_name: str, session_id: str
+    ) -> Optional[dict]:
+        """Find an active consent for a user + institution within a browser session.
+
+        Queries on the QE equality-queryable field (Consumer.UserName), the plaintext
+        session key (Session.ThreadId), and the plaintext Status. InstitutionName is
+        encrypted and non-queryable, so it is matched in application code against the
+        auto-decrypted documents.
+
+        Args:
+            consumer_user_name (str): The username of the consumer.
+            source_institution_name (str): The institution to match.
+            session_id (str): The browser-session key (chat thread_id).
+
+        Returns:
+            Optional[dict]: The matching active consent (QE metadata stripped), else None.
+        """
+        candidates = self.consents_collection.find({
+            "Consumer.UserName": consumer_user_name,
+            "Session.ThreadId": session_id,
+            "Status": {"$in": self.ACTIVE_STATUSES}
+        })
+        for consent in candidates:
+            if consent.get("SourceInstitution", {}).get("InstitutionName") == source_institution_name:
+                return self._strip_qe_metadata(consent)
+        return None
 
     @staticmethod
     def _strip_qe_metadata(doc: dict) -> dict:

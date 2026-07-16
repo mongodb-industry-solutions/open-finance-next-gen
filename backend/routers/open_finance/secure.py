@@ -12,6 +12,7 @@ from services.external.external_accounts import ExternalAccounts
 from services.external.external_products import ExternalFinancialProducts
 from services.aggregations.account_aggregations import AccountAggregations
 from services.aggregations.product_aggregations import ProductAggregations
+from services.internal.users_service import UsersService
 from services.consents.consent_validator import ConsentValidator
 
 from encoder.json_encoder import MyJSONEncoder
@@ -43,6 +44,7 @@ external_products_collection_name = "external_products"
 # Internal
 leafy_bank_db_name = LEAFYBANK_DB_NAME
 accounts_collection_name = "accounts"
+customers_collection_name = "customers"
 
 # Initialize the MongoDB connection
 connection = get_mongo_connection()
@@ -65,10 +67,13 @@ account_aggr_service = AccountAggregations(connection, db1_name=leafy_bank_db_na
 product_aggr_service = ProductAggregations(connection, db_name=open_finance_db_name,
                                            collection_name=external_products_collection_name)
 
+# UsersService resolves a user identifier to the BIAN customerId for internal joins
+users_service = UsersService(connection, leafy_bank_db_name, customers_collection_name)
+
 # Initialize the ConsentValidator with encrypted connection (Queryable Encryption)
 encrypted_connection = get_encrypted_mongo_connection()
-consents_collection_name = "encrypted_consents"
-consent_validator = ConsentValidator(encrypted_connection, db_name=open_finance_db_name,
+consents_collection_name = "openBankingConsents"
+consent_validator = ConsentValidator(encrypted_connection, db_name=leafy_bank_db_name,
                                      consents_collection_name=consents_collection_name)
 
 limiter = Limiter(key_func=get_remote_address)
@@ -332,8 +337,15 @@ async def calculate_total_balance_for_user(
         logger.info(
             "Calculating total balance for user_id: %s", sanitize_log_input(total_balance_request.user_id)
         )
+        # Resolve the BIAN customerId for internal accounts (external accounts still
+        # join on the user ObjectId).
+        customer_id = users_service.get_customer_id(user_auth['UserName'])
+        if not customer_id:
+            raise HTTPException(status_code=404, detail="Customer not found.")
+
         # Call the `get_user_account_balances` method to get the total balance
         balance_data = account_aggr_service.get_user_account_balances(
+            customer_id,
             total_balance_request.user_id,
             total_balance_request.connected_external_accounts,
         )

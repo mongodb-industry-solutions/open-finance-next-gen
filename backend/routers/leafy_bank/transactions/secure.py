@@ -123,11 +123,10 @@ async def get_spending_transactions(
     This is a Leafy Bank endpoint - user is already authenticated via session.
     No consent required — this is Leafy Bank's internal transaction data.
 
-    Unlike fetch-recent-transactions-for-user (which returns the last 20 from the user's
-    RecentTransactions array), this queries the transactions collection directly for ALL
-    transaction records — both CREDIT (income) and DEBIT (spending) from checking and
-    credit card accounts. The agent tool needs both: CREDIT to calculate total income,
-    DEBIT to calculate spending per category, then % = category / income.
+    Unlike fetch-recent-transactions-for-user (which returns the latest 20), this returns
+    ALL transaction records for the customer's accounts — both incoming (income) and
+    outgoing (spending). The agent tool needs both: income to calculate total income,
+    spending per category, then % = category / income.
     """
     try:
         # Validate if the user exists

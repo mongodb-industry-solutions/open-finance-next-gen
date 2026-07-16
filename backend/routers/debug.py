@@ -24,7 +24,6 @@ LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME", "leafy_bank_test")
 # Define collections to expose for each database
 OPENFINANCE_COLLECTIONS = [
     "institutions",
-    "consents",
     "external_accounts",
     "external_products",
     "external_transactions",
@@ -34,9 +33,9 @@ OPENFINANCE_COLLECTIONS = [
 
 LEAFYBANK_COLLECTIONS = [
     "accounts",
-    "users",
+    "customers",
     "transactions",
-    "products",
+    "openBankingConsents",
 ]
 
 

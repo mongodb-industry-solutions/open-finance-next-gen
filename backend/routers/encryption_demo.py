@@ -20,8 +20,8 @@ load_dotenv()
 
 router = APIRouter()
 
-OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")
-ENCRYPTED_CONSENTS_COLLECTION = "encrypted_consents"
+LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
+ENCRYPTED_CONSENTS_COLLECTION = "openBankingConsents"
 
 ENCRYPTED_FIELD_PATHS = [
     "Consumer.UserName",
@@ -68,8 +68,8 @@ async def compare_encrypted_vs_plain(request: Request, consent_id: str):
     encrypted_conn = get_encrypted_mongo_connection()
     plain_conn = get_mongo_connection()
 
-    encrypted_coll = encrypted_conn.get_collection(OPENFINANCE_DB_NAME, ENCRYPTED_CONSENTS_COLLECTION)
-    plain_coll = plain_conn.get_collection(OPENFINANCE_DB_NAME, ENCRYPTED_CONSENTS_COLLECTION)
+    encrypted_coll = encrypted_conn.get_collection(LEAFYBANK_DB_NAME, ENCRYPTED_CONSENTS_COLLECTION)
+    plain_coll = plain_conn.get_collection(LEAFYBANK_DB_NAME, ENCRYPTED_CONSENTS_COLLECTION)
 
     # Read via encrypted client (decrypted view)
     decrypted_doc = encrypted_coll.find_one({"ConsentId": consent_id})
