@@ -32,7 +32,7 @@ OPENFINANCE_DB_NAME = os.getenv("OPENFINANCE_DB_NAME")  # external institution d
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")  # consents
 
 # Collection names
-CONSENTS_COLLECTION = "openBankingConsents"
+CONSENTS_COLLECTION = "openbankingConsents"
 EXTERNAL_ACCOUNTS_COLLECTION = "external_accounts"
 EXTERNAL_PRODUCTS_COLLECTION = "external_products"
 EXTERNAL_TRANSACTIONS_COLLECTION = "external_transactions"

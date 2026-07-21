@@ -80,7 +80,7 @@ Queryable Encryption requires a local master key and an encrypted consents colle
    cd backend && poetry run python ../scripts/setup_encrypted_consents.py
    ```
 
-   This creates the `openBankingConsents` collection in the `leafy_bank_bian` database, generates 4 DEKs, and saves `encryption_config.json` (gitignored).
+   This creates the `openbankingConsents` collection in the `leafy_bank_bian` database, generates 4 DEKs, and saves `encryption_config.json` (gitignored).
 
 > For production, replace the local master key with AWS KMS. Never commit `master-key.bin` or `encryption_config.json` to version control.
 
@@ -107,10 +107,10 @@ The demo requires seed data across two databases. Import the following collectio
 | `accounts`            | Internal bank accounts                                        |
 | `customers`           | Customer records (maps user identifiers to BIAN customerId)   |
 | `transactions`        | BIAN-aligned internal transaction history                     |
-| `openBankingConsents` | Queryable-Encrypted consent records (created by setup script) |
+| `openbankingConsents` | Queryable-Encrypted consent records (created by setup script) |
 | `cachedExternalData`  | External-bank data cached after consent approval              |
 
-> The `openBankingConsents` collection is created by `setup_encrypted_consents.py` — do not import it manually.
+> The `openbankingConsents` collection is created by `setup_encrypted_consents.py` — do not import it manually.
 
 ## Run it Locally
 
@@ -290,7 +290,7 @@ Four consent fields are encrypted using MongoDB's Queryable Encryption:
 | `Permissions`                       | None (encrypted only) | Protect permission details   |
 | `SourceInstitution.InstitutionName` | None (encrypted only) | Protect institution identity |
 
-The driver encrypts on write and decrypts on read — the Atlas server never sees plaintext. The encrypted `openBankingConsents` collection lives in the `leafy_bank_bian` database. A local 96-byte master key protects the Data Encryption Keys (swap to AWS KMS for production).
+The driver encrypts on write and decrypts on read — the Atlas server never sees plaintext. The encrypted `openbankingConsents` collection lives in the `leafy_bank_bian` database. A local 96-byte master key protects the Data Encryption Keys (swap to AWS KMS for production).
 
 ## Common Errors
 
@@ -304,7 +304,7 @@ The driver encrypts on write and decrypts on read — the Atlas server never see
 ### Consent Errors
 
 - **403 on data retrieval** — The consent may be expired, consumed, or revoked. Check consent status first.
-- **Encryption setup fails** — The `openBankingConsents` collection may already exist. Drop it and re-run `setup_encrypted_consents.py`.
+- **Encryption setup fails** — `setup_encrypted_consents.py` drops and recreates the `openbankingConsents` collection automatically; failures are usually due to a missing `master-key.bin`/`encryption_config.json` or insufficient MongoDB privileges to drop/create. Fix the underlying issue and re-run.
 - **TTL index error** — TTL indexes are not supported on QE-encrypted collections. Expiration is enforced in application code.
 
 ## External Consumers
