@@ -304,7 +304,7 @@ The driver encrypts on write and decrypts on read — the Atlas server never see
 ### Consent Errors
 
 - **403 on data retrieval** — The consent may be expired, consumed, or revoked. Check consent status first.
-- **Encryption setup fails** — The `openbankingConsents` collection may already exist. Drop it and re-run `setup_encrypted_consents.py`.
+- **Encryption setup fails** — `setup_encrypted_consents.py` drops and recreates the `openbankingConsents` collection automatically; failures are usually due to a missing `master-key.bin`/`encryption_config.json` or insufficient MongoDB privileges to drop/create. Fix the underlying issue and re-run.
 - **TTL index error** — TTL indexes are not supported on QE-encrypted collections. Expiration is enforced in application code.
 
 ## External Consumers
