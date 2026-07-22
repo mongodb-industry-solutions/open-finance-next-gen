@@ -72,7 +72,7 @@ users_service = UsersService(connection, leafy_bank_db_name, customers_collectio
 
 # Initialize the ConsentValidator with encrypted connection (Queryable Encryption)
 encrypted_connection = get_encrypted_mongo_connection()
-consents_collection_name = "openBankingConsents"
+consents_collection_name = "openbankingConsents"
 consent_validator = ConsentValidator(encrypted_connection, db_name=leafy_bank_db_name,
                                      consents_collection_name=consents_collection_name)
 

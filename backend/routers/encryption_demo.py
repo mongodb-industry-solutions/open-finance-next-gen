@@ -21,7 +21,7 @@ load_dotenv()
 router = APIRouter()
 
 LEAFYBANK_DB_NAME = os.getenv("LEAFYBANK_DB_NAME")
-ENCRYPTED_CONSENTS_COLLECTION = "openBankingConsents"
+ENCRYPTED_CONSENTS_COLLECTION = "openbankingConsents"
 
 ENCRYPTED_FIELD_PATHS = [
     "Consumer.UserName",

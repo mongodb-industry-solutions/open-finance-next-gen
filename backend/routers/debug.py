@@ -35,7 +35,7 @@ LEAFYBANK_COLLECTIONS = [
     "accounts",
     "customers",
     "transactions",
-    "openBankingConsents",
+    "openbankingConsents",
 ]
 
 
