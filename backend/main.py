@@ -1,24 +1,24 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from slowapi.middleware import SlowAPIMiddleware
-from slowapi.errors import RateLimitExceeded
 from apscheduler.schedulers.background import BackgroundScheduler
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi.util import get_remote_address
 
-import logging
-from routers.open_finance import secure as of_secure
-from routers.open_finance import public as of_public
-from routers.open_finance import institutions as of_institutions
+from routers import encryption_demo as encryption_demo_router
+from routers.leafy_bank.accounts import secure as lb_accounts_secure
+from routers.leafy_bank.transactions import secure as lb_transactions_secure
+from routers.leafy_bank.users import secure as lb_users_secure
 from routers.open_finance import consents as of_consents
 from routers.open_finance import customer_data as of_customer_data
-from routers.leafy_bank.accounts import secure as lb_accounts_secure
-from routers.leafy_bank.users import secure as lb_users_secure
-from routers.leafy_bank.transactions import secure as lb_transactions_secure
-from routers import encryption_demo as encryption_demo_router
+from routers.open_finance import institutions as of_institutions
+from routers.open_finance import public as of_public
+from routers.open_finance import secure as of_secure
 from services.consents.consent_sweeper import ConsentSweeper
 
 # Logging

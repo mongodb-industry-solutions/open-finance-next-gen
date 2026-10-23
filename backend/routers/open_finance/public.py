@@ -1,14 +1,15 @@
+import logging
+from datetime import UTC, datetime
+from secrets import token_hex
+
+from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from datetime import datetime, timezone
-from secrets import token_hex
 from pymongo.collection import Collection
-from dependencies import get_tokens_collection
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from bson import ObjectId
 
-import logging
+from dependencies import get_tokens_collection
 from utils.security import sanitize_log_input
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ async def create_user(
                 "UserName": generated_user_name,
                 "BearerToken": new_bearer_token,
                 "TokenDates": {
-                    "CreationDate": datetime.now(timezone.utc),
+                    "CreationDate": datetime.now(UTC),
                     "LastUseDate": None,
                 },
             }

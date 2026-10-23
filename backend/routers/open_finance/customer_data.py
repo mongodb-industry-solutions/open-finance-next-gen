@@ -1,22 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, Query
+import json
+import logging
+import os
+
+from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict, Optional
-from pydantic import BaseModel
-import logging
-import json
 
-from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection, get_mongo_connection
-from services.auth import Auth
-from services.open_finance.customer_data_service import CustomerDataService
-from services.open_finance.cached_data_service import CachedDataService
-from services.aggregations.account_aggregations import AccountAggregations
-from services.internal.users_service import UsersService
-from services.consents.consent_validator import ConsentValidator
+from dependencies import (
+    get_auth,
+    get_bearer_token,
+    get_encrypted_mongo_connection,
+    get_mongo_connection,
+)
 from encoder.json_encoder import MyJSONEncoder
-
-import os
-from dotenv import load_dotenv
+from services.aggregations.account_aggregations import AccountAggregations
+from services.auth import Auth
+from services.consents.consent_validator import ConsentValidator
+from services.internal.users_service import UsersService
+from services.open_finance.cached_data_service import CachedDataService
+from services.open_finance.customer_data_service import CustomerDataService
 
 load_dotenv()
 
@@ -87,9 +91,9 @@ limiter = Limiter(key_func=get_remote_address)
 
 # Define Pydantic Models
 class ExternalDataResponse(BaseModel):
-    accounts: Optional[List[Dict]] = None
-    products: Optional[List[Dict]] = None
-    transactions: Optional[List[Dict]] = None
+    accounts: list[dict] | None = None
+    products: list[dict] | None = None
+    transactions: list[dict] | None = None
     consent_id: str
     consent_status: str  # CONSUMED after successful retrieval
     source_institution: str
@@ -97,27 +101,27 @@ class ExternalDataResponse(BaseModel):
 
 
 class ExternalTransactionsResponse(BaseModel):
-    transactions: List[Dict]
+    transactions: list[dict]
     consent_id: str
     source_institution: str
     purpose: str
 
 
 class FetchAndCacheResponse(ExternalDataResponse):
-    cached_counts: Dict
+    cached_counts: dict
 
 
 class CachedInstitutionData(BaseModel):
     institution: str
     consent_id: str
-    accounts: List[Dict]
-    products: List[Dict]
-    transactions: List[Dict]
+    accounts: list[dict]
+    products: list[dict]
+    transactions: list[dict]
 
 
 class CachedDataResponse(BaseModel):
     user_identifier: str
-    institutions: List[CachedInstitutionData]
+    institutions: list[CachedInstitutionData]
 
 
 class InstitutionPosition(BaseModel):
@@ -130,7 +134,7 @@ class GlobalPositionResponse(BaseModel):
     total_balance: float
     total_debt: float
     net_worth: float
-    by_institution: List[InstitutionPosition]
+    by_institution: list[InstitutionPosition]
 
 
 # Define API Endpoints
@@ -177,12 +181,12 @@ async def retrieve_external_data(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error retrieving external data: {str(ve)}")
+        logger.error(f"Validation error retrieving external data: {ve!s}")
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error retrieving external data: {str(e)}")
+        logger.error(f"Error retrieving external data: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -230,12 +234,12 @@ async def fetch_and_cache_external_data(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error fetching and caching external data: {str(ve)}")
+        logger.error(f"Validation error fetching and caching external data: {ve!s}")
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error fetching and caching external data: {str(e)}")
+        logger.error(f"Error fetching and caching external data: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -244,11 +248,11 @@ async def fetch_and_cache_external_data(
 async def retrieve_cached_data(
     request: Request,
     user_identifier: str,
-    resource_type: Optional[str] = Query(
+    resource_type: str | None = Query(
         None, description="Restrict to ACCOUNT, PRODUCT, or TRANSACTION"
     ),
-    consent_id: Optional[str] = Query(None, description="Restrict to a single consent (one bank)"),
-    consent_ids: Optional[str] = Query(
+    consent_id: str | None = Query(None, description="Restrict to a single consent (one bank)"),
+    consent_ids: str | None = Query(
         None,
         description="Comma-separated ConsentIds to restrict to the current browser "
                     "session's banks (prevents cross-session duplicate data)."
@@ -290,10 +294,10 @@ async def retrieve_cached_data(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error retrieving cached data: {str(e)}")
+        logger.error(f"Error retrieving cached data: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -302,7 +306,7 @@ async def retrieve_cached_data(
 async def retrieve_global_position(
     request: Request,
     user_identifier: str,
-    consent_ids: Optional[str] = Query(
+    consent_ids: str | None = Query(
         None,
         description="Comma-separated ConsentIds to restrict the external position to the "
                     "current browser session's banks (prevents double-counting)."
@@ -352,10 +356,10 @@ async def retrieve_global_position(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error computing global position: {str(e)}")
+        logger.error(f"Error computing global position: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -400,13 +404,13 @@ async def retrieve_external_transactions(
         )
 
     except PermissionError as pe:
-        logger.error(f"Permission error retrieving external transactions: {str(pe)}")
+        logger.error(f"Permission error retrieving external transactions: {pe!s}")
         raise HTTPException(status_code=403, detail=str(pe))
     except ValueError as ve:
-        logger.error(f"Validation error retrieving external transactions: {str(ve)}")
+        logger.error(f"Validation error retrieving external transactions: {ve!s}")
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error retrieving external transactions: {str(e)}")
+        logger.error(f"Error retrieving external transactions: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

@@ -1,11 +1,16 @@
-from fastapi import Security, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from database.connection import MongoDBConnection
-from database.encrypted_connection import create_encrypted_connection, load_encryption_config
-from pymongo.collection import Collection
-from services.auth import Auth
 import os
+
 from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pymongo.collection import Collection
+
+from database.connection import MongoDBConnection
+from database.encrypted_connection import (
+    create_encrypted_connection,
+    load_encryption_config,
+)
+from services.auth import Auth
 
 load_dotenv()
 

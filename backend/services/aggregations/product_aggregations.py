@@ -1,7 +1,8 @@
-from database.connection import MongoDBConnection
-from bson import ObjectId
-from typing import List, Optional
 import logging
+
+from bson import ObjectId
+
+from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ class ProductAggregations:
             db_name, collection_name
         )
 
-    def _aggregate_external_products_debt(self, user_id: ObjectId, connected_external_products: Optional[List[str]]) -> float:
+    def _aggregate_external_products_debt(self, user_id: ObjectId, connected_external_products: list[str] | None) -> float:
         """Aggregate total remaining debt (ProductBalance) for specified external loan products for a specific user."""
 
         # If no connected external products are specified, return 0
@@ -44,7 +45,7 @@ class ProductAggregations:
         logger.info(f"Total External Product Debt: {total_debt}")
         return total_debt  # Return the total debt
 
-    def get_user_total_debt(self, user_id: str, connected_external_products: Optional[List[str]] = None) -> dict:
+    def get_user_total_debt(self, user_id: str, connected_external_products: list[str] | None = None) -> dict:
         """Get aggregated total debt for external products."""
         user_id_obj = ObjectId(user_id)
 

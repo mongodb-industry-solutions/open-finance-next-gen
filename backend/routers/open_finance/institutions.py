@@ -1,18 +1,17 @@
-from fastapi import APIRouter, HTTPException, Query, Response, Request
+import json
+import logging
+import os
+
+from dotenv import load_dotenv
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict, Optional
-from pydantic import BaseModel
-import logging
-import json
 
 from dependencies import get_mongo_connection
-from utils.security import sanitize_log_input
-from services.institutions.institution_service import InstitutionService
 from encoder.json_encoder import MyJSONEncoder
-
-import os
-from dotenv import load_dotenv
+from services.institutions.institution_service import InstitutionService
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -40,11 +39,11 @@ limiter = Limiter(key_func=get_remote_address)
 
 # Define Pydantic Models
 class InstitutionListResponse(BaseModel):
-    institutions: List[Dict]
+    institutions: list[dict]
 
 
 class InstitutionResponse(BaseModel):
-    institution: Dict
+    institution: dict
 
 
 # Define API Endpoints
@@ -53,7 +52,7 @@ class InstitutionResponse(BaseModel):
 @limiter.limit("60/minute")
 async def list_institutions(
     request: Request,
-    user_id: Optional[str] = Query(None, description="Filter to institutions where this user has accounts"),
+    user_id: str | None = Query(None, description="Filter to institutions where this user has accounts"),
 ):
     """
     List institutions in the Open Finance ecosystem.
@@ -75,10 +74,10 @@ async def list_institutions(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error listing institutions: {str(e)}")
+        logger.error(f"Error listing institutions: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -111,8 +110,8 @@ async def get_institution(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting institution {sanitize_log_input(institution_name)}: {str(e)}")
+        logger.error(f"Error getting institution {sanitize_log_input(institution_name)}: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

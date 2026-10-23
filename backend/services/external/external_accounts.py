@@ -1,9 +1,10 @@
 import logging
 import random
+from datetime import UTC, datetime, timedelta
+
 from bson import ObjectId
-from typing import Union
+
 from database.connection import MongoDBConnection
-from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +103,11 @@ class ExternalAccounts:
 
     def _generate_random_opening_date(self) -> datetime:
         """Generate a random past opening date within the last 5 years."""
-        end_date = datetime.now(timezone.utc)
+        end_date = datetime.now(UTC)
         start_date = end_date - timedelta(days=5*365)
         return start_date + (end_date - start_date) * random.random()
 
-    def get_external_accounts_for_user_and_institution(self, user_identifier: Union[str, ObjectId], institution_name: str) -> list[dict]:
+    def get_external_accounts_for_user_and_institution(self, user_identifier: str | ObjectId, institution_name: str) -> list[dict]:
         """Retrieve external accounts for a specific user from a specific bank.
         Args:
             user_identifier (Union[str, ObjectId]): The user identifier (username or ObjectId of the user).
@@ -125,7 +126,7 @@ class ExternalAccounts:
         external_accounts = list(self.external_accounts_collection.find(query))
         return external_accounts
 
-    def get_all_external_accounts_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
+    def get_all_external_accounts_for_user(self, user_identifier: str | ObjectId) -> list[dict]:
         """Retrieve all external accounts for a specific user.
         Args:
             user_identifier (Union[str, ObjectId]): The user identifier (username or ObjectId of the user).

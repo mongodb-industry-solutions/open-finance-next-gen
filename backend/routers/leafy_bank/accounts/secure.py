@@ -1,20 +1,19 @@
-from fastapi import APIRouter, HTTPException, Response, Request
+import json
+import logging
+import os
+
+from bson import ObjectId
+from dotenv import load_dotenv
+from fastapi import APIRouter, HTTPException, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict
-from pydantic import BaseModel
-from bson import ObjectId
-import logging
-import json
 
 from dependencies import get_mongo_connection
-from utils.security import sanitize_log_input
+from encoder.json_encoder import MyJSONEncoder
 from services.internal.accounts_service import AccountsService
 from services.internal.users_service import UsersService
-from encoder.json_encoder import MyJSONEncoder
-
-import os
-from dotenv import load_dotenv
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -51,7 +50,7 @@ class FetchAccountsForUserRequest(BaseModel):
 
 
 class FetchAccountsResponse(BaseModel):
-    accounts: List[Dict]
+    accounts: list[dict]
 
 
 # Define API Endpoints
@@ -86,8 +85,8 @@ async def fetch_accounts_for_user(
         accounts = accounts_service.get_accounts_for_user(customer_id)
         return Response(content=json.dumps({"accounts": accounts}, cls=MyJSONEncoder), media_type="application/json")
 
-    except HTTPException as he:
-        raise he  # Propagate pre-raised HTTPException
+    except HTTPException:
+        raise  # Propagate pre-raised HTTPException
     except Exception as e:
         logger.error("Error fetching accounts for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")

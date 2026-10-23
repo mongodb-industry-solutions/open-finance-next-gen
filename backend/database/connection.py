@@ -1,5 +1,5 @@
+
 from pymongo import MongoClient
-from typing import Dict, List
 
 
 class MongoDBConnection:
@@ -62,8 +62,8 @@ class MongoDBConnection:
         collection = self.client[db_name][collection_name]
         return collection
 
-    def insert_one(self, db_name: str, collection_name: str, document: Dict,
-                   redefined_id: bool = False, id_attribute: str = None):
+    def insert_one(self, db_name: str, collection_name: str, document: dict,
+                   redefined_id: bool = False, id_attribute: str | None = None):
         """ 
         Inserts a single document into a collection.  
         
@@ -85,8 +85,8 @@ class MongoDBConnection:
         result = self.client[db_name][collection_name].insert_one(document)
         return result
 
-    def insert_many(self, db_name: str, collection_name: str, documents: List[Dict],
-                    redefined_id: bool = False, id_attribute: str = None):
+    def insert_many(self, db_name: str, collection_name: str, documents: list[dict],
+                    redefined_id: bool = False, id_attribute: str | None = None):
         """ 
         Inserts multiple documents into a collection.  
         

@@ -1,21 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, Request, Query
+import json
+import logging
+import os
+
+from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict, Optional
-from pydantic import BaseModel
-import logging
-import json
 
-from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection, get_mongo_connection
-from utils.security import sanitize_log_input
+from dependencies import (
+    get_auth,
+    get_bearer_token,
+    get_encrypted_mongo_connection,
+    get_mongo_connection,
+)
+from encoder.json_encoder import MyJSONEncoder
+from routers.open_finance.customer_data import cached_data_service
 from services.auth import Auth
 from services.consents.consent_service import ConsentService
 from services.internal.users_service import UsersService
-from routers.open_finance.customer_data import cached_data_service
-from encoder.json_encoder import MyJSONEncoder
-
-import os
-from dotenv import load_dotenv
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -55,24 +59,24 @@ limiter = Limiter(key_func=get_remote_address)
 # Define Pydantic Models
 class CreateConsentRequest(BaseModel):
     consumer_id: str  # UserName or UserId - validated against bearer token
-    purpose: Optional[str] = None  # None = general access (all permissions). Or: FINANCIAL_ADVICE
+    purpose: str | None = None  # None = general access (all permissions). Or: FINANCIAL_ADVICE
     source_institution_name: str  # must match an existing institution's InstitutionName
     expiration_days: int  # Required: 3-12 (treated as minutes in demo mode)
-    permissions: Optional[List[str]] = None  # Optional: subset of purpose's default permissions. Auto-assigned if omitted.
-    session_id: Optional[str] = None  # Browser-session key (chat thread_id). Scopes duplicate detection per session.
+    permissions: list[str] | None = None  # Optional: subset of purpose's default permissions. Auto-assigned if omitted.
+    session_id: str | None = None  # Browser-session key (chat thread_id). Scopes duplicate detection per session.
 
 
 class UpdateStatusRequest(BaseModel):
     status: str  # the target status
-    rejection_reason: Optional[Dict] = None  # required if status is REJECTED
+    rejection_reason: dict | None = None  # required if status is REJECTED
 
 
 class ConsentResponse(BaseModel):
-    consent: Dict
+    consent: dict
 
 
 class ConsentListResponse(BaseModel):
-    consents: List[Dict]
+    consents: list[dict]
 
 
 class MessageResponse(BaseModel):
@@ -131,12 +135,12 @@ async def create_consent(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error creating consent: {str(ve)}")
+        logger.error(f"Validation error creating consent: {ve!s}")
         raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error creating consent: {str(e)}")
+        logger.error(f"Error creating consent: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -167,10 +171,10 @@ async def list_consents(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error listing consents: {str(e)}")
+        logger.error(f"Error listing consents: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -206,10 +210,10 @@ async def get_consent(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting consent {sanitize_log_input(consent_id)}: {str(e)}")
+        logger.error(f"Error getting consent {sanitize_log_input(consent_id)}: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -267,12 +271,12 @@ async def update_consent_status(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error updating consent status: {str(ve)}")
+        logger.error(f"Validation error updating consent status: {ve!s}")
         raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error updating consent status {sanitize_log_input(consent_id)}: {str(e)}")
+        logger.error(f"Error updating consent status {sanitize_log_input(consent_id)}: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -322,12 +326,12 @@ async def approve_consent(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error approving consent: {str(ve)}")
+        logger.error(f"Validation error approving consent: {ve!s}")
         raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error approving consent {sanitize_log_input(consent_id)}: {str(e)}")
+        logger.error(f"Error approving consent {sanitize_log_input(consent_id)}: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
@@ -380,10 +384,10 @@ async def revoke_consent(
         )
 
     except ValueError as ve:
-        logger.error(f"Validation error revoking consent: {str(ve)}")
+        logger.error(f"Validation error revoking consent: {ve!s}")
         raise HTTPException(status_code=400, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error revoking consent {sanitize_log_input(consent_id)}: {str(e)}")
+        logger.error(f"Error revoking consent {sanitize_log_input(consent_id)}: {e!s}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

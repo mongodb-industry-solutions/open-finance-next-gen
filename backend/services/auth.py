@@ -1,6 +1,8 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from fastapi import HTTPException
+
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,7 @@ class Auth:
         # Update the LastUseDate for the token
         self.tokens_collection.update_one(
             {"BearerToken": bearer_token},
-            {"$set": {"TokenDates.LastUseDate": datetime.now(timezone.utc)}}
+            {"$set": {"TokenDates.LastUseDate": datetime.now(UTC)}}
         )
         logger.info(
             f"Bearer token validated for user: {user['UserName']} | Bearer token: ...{bearer_token[-4:]}")
