@@ -1,28 +1,29 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Response, Query
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-from dependencies import get_auth, get_bearer_token, get_encrypted_mongo_connection
-from pydantic import BaseModel
-from typing import List, Dict, Optional
-from bson import ObjectId
-
-from dependencies import get_mongo_connection
-from services.auth import Auth
-from services.external.external_accounts import ExternalAccounts
-from services.external.external_products import ExternalFinancialProducts
-from services.aggregations.account_aggregations import AccountAggregations
-from services.aggregations.product_aggregations import ProductAggregations
-from services.internal.users_service import UsersService
-from services.consents.consent_validator import ConsentValidator
-
-from encoder.json_encoder import MyJSONEncoder
-from utils.security import sanitize_log_input
-
 import json
 import logging
-
 import os
+
+from bson import ObjectId
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+from dependencies import (
+    get_auth,
+    get_bearer_token,
+    get_encrypted_mongo_connection,
+    get_mongo_connection,
+)
+from encoder.json_encoder import MyJSONEncoder
+from services.aggregations.account_aggregations import AccountAggregations
+from services.aggregations.product_aggregations import ProductAggregations
+from services.auth import Auth
+from services.consents.consent_validator import ConsentValidator
+from services.external.external_accounts import ExternalAccounts
+from services.external.external_products import ExternalFinancialProducts
+from services.internal.users_service import UsersService
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -92,11 +93,11 @@ async def validate_token(
 
 
 class FetchExternalAccountsResponse(BaseModel):
-    accounts: List[Dict]
+    accounts: list[dict]
 
 
 class FetchExternalProductsResponse(BaseModel):
-    products: List[Dict]
+    products: list[dict]
 
 
 @router.get("/fetch-external-accounts-for-user-and-institution/", response_model=FetchExternalAccountsResponse)
@@ -143,8 +144,8 @@ async def fetch_external_accounts_for_user_and_institution(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error retrieving external accounts for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,8 +195,8 @@ async def fetch_external_products_for_user_and_institution(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error retrieving external products for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail=str(e))
@@ -241,8 +242,8 @@ async def fetch_all_external_accounts_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             "Error retrieving all external accounts for user: %s", sanitize_log_input(str(e)))
@@ -289,8 +290,8 @@ async def fetch_all_external_products_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             "Error retrieving all external products for user: %s", sanitize_log_input(str(e)))
@@ -300,7 +301,7 @@ async def fetch_all_external_products_for_user(
 class TotalBalanceRequest(BaseModel):
     user_id: str  # The user's ObjectId as a string
     # List of connected external account IDs (optional)
-    connected_external_accounts: Optional[List[str]]
+    connected_external_accounts: list[str] | None
     consent_id: str  # The ConsentId authorizing external data access
 
 
@@ -330,7 +331,7 @@ async def calculate_total_balance_for_user(
     )
     try:
         # Validate consent
-        consent, source_institution = consent_validator.validate_consent(
+        consent, _source_institution = consent_validator.validate_consent(
             total_balance_request.consent_id, user_auth['UserName'], "ACCOUNTS_BALANCES_READ"
         )
 
@@ -362,8 +363,8 @@ async def calculate_total_balance_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error calculating total balance for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -372,7 +373,7 @@ async def calculate_total_balance_for_user(
 class TotalDebtRequest(BaseModel):
     user_id: str  # The user's ObjectId as a string
     # List of connected external product IDs
-    connected_external_products: Optional[List[str]]
+    connected_external_products: list[str] | None
     consent_id: str  # The ConsentId authorizing external data access
 
 
@@ -402,7 +403,7 @@ async def calculate_total_debt_for_user(
     )
     try:
         # Validate consent
-        consent, source_institution = consent_validator.validate_consent(
+        consent, _source_institution = consent_validator.validate_consent(
             total_debt_request.consent_id, user_auth['UserName'], "LOANS_READ"
         )
 
@@ -427,8 +428,8 @@ async def calculate_total_debt_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error calculating total debt for user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")
@@ -488,8 +489,8 @@ async def retrieve_external_account_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -554,8 +555,8 @@ async def retrieve_external_product_for_user(
     except ValueError as ve:
         logger.error("Consent validation error: %s", sanitize_log_input(str(ve)))
         raise HTTPException(status_code=403, detail=str(ve))
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error retrieving external financial product: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")

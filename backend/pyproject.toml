@@ -20,6 +20,10 @@ pillow = ">=13.0.0"
 certifi = ">=2026.10.19"
 
 
+[tool.ruff.lint]
+# FastAPI Depends()/Security() defaults and deliberate broad excepts are intentional here
+ignore = ["B008", "BLE001", "TRY002", "RUF012"]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

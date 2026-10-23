@@ -1,6 +1,7 @@
 import logging
+
 from bson import ObjectId
-from typing import Union
+
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class TransactionsService:
         self.customers_collection = self.db['customers']
         self.accounts_collection = self.db['accounts']
 
-    def _resolve_customer(self, user_identifier: Union[str, ObjectId]) -> Union[dict, None]:
+    def _resolve_customer(self, user_identifier: str | ObjectId) -> dict | None:
         """Resolve a user identifier (userName, ObjectId, or customerId) to a customer doc."""
         if isinstance(user_identifier, ObjectId):
             query = {"_id": user_identifier}
@@ -40,7 +41,7 @@ class TransactionsService:
             {"customerSnapshot.customerId": customer_id}, {"accountId": 1})
         return [acct["accountId"] for acct in accounts if acct.get("accountId")]
 
-    def is_valid_user(self, user_identifier: Union[str, ObjectId]) -> bool:
+    def is_valid_user(self, user_identifier: str | ObjectId) -> bool:
         """Check if the customer exists in the system.
         Args:
             user_identifier (Union[str, ObjectId]): userName, ObjectId, or customerId.
@@ -49,7 +50,7 @@ class TransactionsService:
         """
         return self._resolve_customer(user_identifier) is not None
 
-    def get_all_transactions_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
+    def get_all_transactions_for_user(self, user_identifier: str | ObjectId) -> list[dict]:
         """Get all transactions for a customer (both incoming and outgoing).
 
         Under the BIAN schema, transactions reference parties by accountId, so this
@@ -83,7 +84,7 @@ class TransactionsService:
         logger.info(f"Retrieved {len(transactions)} total transactions for {customer['customerId']}")
         return transactions
 
-    def get_recent_transactions_for_user(self, user_identifier: Union[str, ObjectId]) -> list[dict]:
+    def get_recent_transactions_for_user(self, user_identifier: str | ObjectId) -> list[dict]:
         """Get the 20 most recent transactions for a customer.
 
         The legacy RecentTransactions[] array no longer exists under the BIAN schema,

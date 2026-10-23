@@ -1,19 +1,18 @@
+import json
+import logging
+import os
+
+from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import List, Dict
-from bson import ObjectId
-import logging
-import json
 
 from dependencies import get_mongo_connection
-from utils.security import sanitize_log_input
-from services.internal.transactions_service import TransactionsService
 from encoder.json_encoder import MyJSONEncoder
-from pydantic import BaseModel
-
-import os
-from dotenv import load_dotenv
+from services.internal.transactions_service import TransactionsService
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -41,7 +40,7 @@ class UserIdentifierRequest(BaseModel):
 
 
 class RecentTransactionsResponse(BaseModel):
-    transactions: List[Dict]
+    transactions: list[dict]
 
 # Endpoint to fetch recent transactions for a user
 
@@ -96,8 +95,8 @@ async def fetch_recent_transactions_for_user(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he  # Propagate pre-raised HTTPException
+    except HTTPException:
+        raise  # Propagate pre-raised HTTPException
     except Exception as e:
         logger.error(
             "Error retrieving recent transactions for user: %s", sanitize_log_input(str(e)))
@@ -107,7 +106,7 @@ async def fetch_recent_transactions_for_user(
 # --- N6: User Spending Transactions ---
 
 class SpendingTransactionsResponse(BaseModel):
-    transactions: List[Dict]
+    transactions: list[dict]
     total_count: int
 
 
@@ -144,8 +143,8 @@ async def get_spending_transactions(
             media_type="application/json"
         )
 
-    except HTTPException as he:
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
             "Error retrieving spending transactions for user %s: %s", sanitize_log_input(user_identifier), sanitize_log_input(str(e)))

@@ -1,19 +1,18 @@
+import json
+import logging
+import os
+
+from bson import ObjectId
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request, Response
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from typing import Dict
-from bson import ObjectId
-import logging
-import json
 
 from dependencies import get_mongo_connection
-from utils.security import sanitize_log_input
-from services.internal.users_service import UsersService
 from encoder.json_encoder import MyJSONEncoder
-from pydantic import BaseModel
-
-import os
-from dotenv import load_dotenv
+from services.internal.users_service import UsersService
+from utils.security import sanitize_log_input
 
 load_dotenv()
 
@@ -44,7 +43,7 @@ class FindUserRequest(BaseModel):
 
 
 class FindUserResponse(BaseModel):
-    user: Dict
+    user: dict
 
 
 # Define the endpoints
@@ -78,8 +77,8 @@ async def find_user(
             raise HTTPException(status_code=404, detail="User not found.")
 
         return Response(content=json.dumps({"user": user}, cls=MyJSONEncoder), media_type="application/json")
-    except HTTPException as he:
-        raise he  # Propagate pre-raised HTTPException
+    except HTTPException:
+        raise  # Propagate pre-raised HTTPException
     except Exception as e:
         logger.error("Error finding user: %s", sanitize_log_input(str(e)))
         raise HTTPException(status_code=500, detail="Internal Server Error")

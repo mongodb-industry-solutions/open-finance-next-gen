@@ -1,4 +1,5 @@
 import logging
+
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
