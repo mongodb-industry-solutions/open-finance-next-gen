@@ -5,16 +5,16 @@ Demonstrates MongoDB Queryable Encryption by showing the same consent document
 as seen by the encrypted client (decrypted) vs a plain client (encrypted binary blobs).
 """
 
+import json
+import os
+
+from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+
+from dependencies import get_encrypted_mongo_connection, get_mongo_connection
 from encoder.json_encoder import MyJSONEncoder
-
-from dependencies import get_mongo_connection, get_encrypted_mongo_connection
-
-import json
-import os
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -99,7 +99,7 @@ async def compare_encrypted_vs_plain(request: Request, consent_id: str):
     # Build decrypted document view (excluding _id and internal QE fields)
     doc_view = {}
     for key, val in decrypted_doc.items():
-        if key.startswith("_") or key.startswith("__"):
+        if key.startswith(("_", "__")):
             continue
         doc_view[key] = val
 

@@ -1,11 +1,11 @@
 import logging
-from typing import Optional, List, Dict
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from secrets import token_hex
+
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import (
+    validate_purpose,
     validate_transition,
-    validate_purpose
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class ConsentService:
 
     def __init__(self, connection: MongoDBConnection, db_name: str,
                  consents_collection_name: str, institutions_collection_name: str,
-                 institutions_db_name: str = None):
+                 institutions_db_name: str | None = None):
         """Initialize the ConsentService with MongoDB connection and collection names.
 
         Args:
@@ -99,11 +99,11 @@ class ConsentService:
         self,
         consumer_user_name: str,
         consumer_user_id: str,
-        purpose: Optional[str],
+        purpose: str | None,
         source_institution_name: str,
-        expiration_days: int = None,
-        permissions: Optional[List[str]] = None,
-        session_id: Optional[str] = None
+        expiration_days: int | None = None,
+        permissions: list[str] | None = None,
+        session_id: str | None = None
     ) -> dict:
         """Create a new consent record.
 
@@ -135,7 +135,7 @@ class ConsentService:
                         or expiration out of range.
         """
         # Single timestamp for all datetime fields
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Default expiration
         if expiration_days is None:
@@ -256,7 +256,7 @@ class ConsentService:
 
     def _find_active_consent(
         self, consumer_user_name: str, source_institution_name: str, session_id: str
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """Find an active consent for a user + institution within a browser session.
 
         Queries on the QE equality-queryable field (Consumer.UserName), the plaintext
@@ -292,7 +292,7 @@ class ConsentService:
         doc.pop("__safeContent__", None)
         return doc
 
-    def get_consent(self, consent_id: str) -> Optional[dict]:
+    def get_consent(self, consent_id: str) -> dict | None:
         """Retrieve a consent by its ConsentId.
 
         Args:
@@ -309,7 +309,7 @@ class ConsentService:
             logger.info(f"Consent not found: {consent_id}")
         return consent
 
-    def list_consents_for_user(self, user_name: str) -> List[dict]:
+    def list_consents_for_user(self, user_name: str) -> list[dict]:
         """Retrieve all consents for a specific user.
 
         Args:
@@ -326,8 +326,8 @@ class ConsentService:
         self,
         consent_id: str,
         new_status: str,
-        rejection_reason: Optional[Dict] = None
-    ) -> Optional[dict]:
+        rejection_reason: dict | None = None
+    ) -> dict | None:
         """Update the status of a consent.
 
         Args:
@@ -351,7 +351,7 @@ class ConsentService:
         # Validate the transition (raises ValueError if invalid)
         validate_transition(current_status, new_status)
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Build the update
         update_fields = {
@@ -385,7 +385,7 @@ class ConsentService:
 
         return None
 
-    def simulate_approval(self, consent_id: str) -> Optional[dict]:
+    def simulate_approval(self, consent_id: str) -> dict | None:
         """Simulate approval of a consent (demo shortcut).
 
         Args:
@@ -396,7 +396,7 @@ class ConsentService:
         """
         return self.update_status(consent_id, "AUTHORISED")
 
-    def revoke_consent(self, consent_id: str) -> Optional[dict]:
+    def revoke_consent(self, consent_id: str) -> dict | None:
         """Revoke an authorized consent.
 
         Args:
@@ -411,7 +411,7 @@ class ConsentService:
         }
         return self.update_status(consent_id, "REVOKED", rejection_reason)
 
-    def reject_consent(self, consent_id: str, rejection_code: str, reason: str) -> Optional[dict]:
+    def reject_consent(self, consent_id: str, rejection_code: str, reason: str) -> dict | None:
         """Reject a pending consent.
 
         Args:
@@ -428,7 +428,7 @@ class ConsentService:
         }
         return self.update_status(consent_id, "REJECTED", rejection_reason)
 
-    def consume_consent(self, consent_id: str) -> Optional[dict]:
+    def consume_consent(self, consent_id: str) -> dict | None:
         """Mark a consent as consumed after data retrieval.
 
         Args:

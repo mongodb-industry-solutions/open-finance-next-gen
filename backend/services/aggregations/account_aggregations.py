@@ -1,7 +1,8 @@
 import logging
-from database.connection import MongoDBConnection
+
 from bson import ObjectId
-from typing import List, Optional
+
+from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ class AccountAggregations:
         logger.info(f"Total Internal Balance: {total_balance}")
         return total_balance  # Return the total internal balance
 
-    def _aggregate_external_account_balances(self, user_id: ObjectId, connected_external_accounts: Optional[List[str]]) -> float:
+    def _aggregate_external_account_balances(self, user_id: ObjectId, connected_external_accounts: list[str] | None) -> float:
         """Aggregate total balance for specified external accounts."""
         match_stage = {
             'AccountUser.UserId': user_id  # Always match by user_id
@@ -62,7 +63,7 @@ class AccountAggregations:
         logger.info(f"Total External Balance: {total_balance}")
         return total_balance  # Return the total external balance
 
-    def get_user_account_balances(self, customer_id: str, user_id: str, connected_external_accounts: Optional[List[str]] = None) -> dict:
+    def get_user_account_balances(self, customer_id: str, user_id: str, connected_external_accounts: list[str] | None = None) -> dict:
         """Get aggregated total balance for internal and external accounts.
 
         Internal (leafy_bank, BIAN) accounts join on `customer_id`; external accounts

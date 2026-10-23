@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+
 from database.connection import MongoDBConnection
 from services.consents.consent_validator import ConsentValidator
 
@@ -51,7 +51,7 @@ class CustomerDataService:
             "createdBy": f"EXTERNAL-{institution_name}",
         }
 
-    def retrieve_data_with_consent(self, consent_id: str, user_name: str) -> Dict:
+    def retrieve_data_with_consent(self, consent_id: str, user_name: str) -> dict:
         """Retrieve external data based on an authorized consent.
 
         This method:
@@ -98,7 +98,7 @@ class CustomerDataService:
 
         return result
 
-    def _query_data_by_purpose(self, user_name: str, institution_name: str, purpose: str, permissions: List[str]) -> Dict:
+    def _query_data_by_purpose(self, user_name: str, institution_name: str, purpose: str, permissions: list[str]) -> dict:
         """Query appropriate collections based on consent purpose, gated by permissions.
 
         Each data source is only queried if the corresponding permission is present
@@ -153,7 +153,7 @@ class CustomerDataService:
 
         return result
 
-    def retrieve_transactions_with_consent(self, consent_id: str, user_name: str) -> Dict:
+    def retrieve_transactions_with_consent(self, consent_id: str, user_name: str) -> dict:
         """Retrieve only external transactions based on an authorized consent.
 
         Args:

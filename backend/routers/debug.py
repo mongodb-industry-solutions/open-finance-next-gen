@@ -5,14 +5,16 @@ Exposes MongoDB collection data for debugging purposes.
 This endpoint is for development/debugging only.
 """
 
-from fastapi import APIRouter, Depends
-from typing import Dict, Any
-from database.connection import MongoDBConnection
-from dependencies import get_mongo_connection
-from bson import json_util
 import json
 import os
+from typing import Any
+
+from bson import json_util
 from dotenv import load_dotenv
+from fastapi import APIRouter, Depends
+
+from database.connection import MongoDBConnection
+from dependencies import get_mongo_connection
 
 load_dotenv()
 
@@ -39,7 +41,7 @@ LEAFYBANK_COLLECTIONS = [
 ]
 
 
-def serialize_mongo_doc(doc: Dict) -> Dict:
+def serialize_mongo_doc(doc: dict) -> dict:
     """Convert MongoDB document to JSON-serializable format."""
     return json.loads(json_util.dumps(doc))
 
@@ -47,7 +49,7 @@ def serialize_mongo_doc(doc: Dict) -> Dict:
 @router.get("/databases")
 async def list_databases(
     mongo_connection: MongoDBConnection = Depends(get_mongo_connection)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """List available databases and their collections."""
     return {
         "databases": [
@@ -69,7 +71,7 @@ async def get_collection_data(
     collection_name: str,
     limit: int = 50,
     mongo_connection: MongoDBConnection = Depends(get_mongo_connection)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get documents from a collection.
 
@@ -119,7 +121,7 @@ async def get_collection_data(
 async def list_collection_stats(
     db_name: str,
     mongo_connection: MongoDBConnection = Depends(get_mongo_connection)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get stats for all collections in a database.
 

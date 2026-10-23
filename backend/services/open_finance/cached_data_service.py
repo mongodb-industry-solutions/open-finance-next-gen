@@ -1,7 +1,6 @@
 import logging
 import random
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from datetime import UTC, datetime, timedelta
 
 from pymongo import ASCENDING
 
@@ -45,7 +44,7 @@ class CachedDataService:
         # Dashboard reads filter by UserName (all of a user's cached data across banks).
         self.cached_data_collection.create_index([("UserName", ASCENDING), ("ResourceType", ASCENDING)])
 
-    def fetch_and_cache(self, consent_id: str, user_name: str) -> Dict:
+    def fetch_and_cache(self, consent_id: str, user_name: str) -> dict:
         """Fetch all consent-permitted external data and store it in the cache collection.
 
         Reuses CustomerDataService so the consent validation and permission gating
@@ -73,7 +72,7 @@ class CachedDataService:
             )
 
         source_institution = result.get("source_institution")
-        cached_at = datetime.now(timezone.utc)
+        cached_at = datetime.now(UTC)
 
         # Demo freshness: static source transactions get re-dated on every pull so the
         # dashboard always shows recent activity. Mutates the cached copy only — the
@@ -84,7 +83,7 @@ class CachedDataService:
         # Keeps the cache idempotent across repeated fetches for the same consent.
         self.purge_consent_data(consent_id)
 
-        docs: List[Dict] = []
+        docs: list[dict] = []
         for resource_type, key in (("ACCOUNT", "accounts"), ("PRODUCT", "products"), ("TRANSACTION", "transactions")):
             for payload in (result.get(key) or []):
                 docs.append(self._wrap(consent_id, user_name, source_institution,
@@ -106,10 +105,10 @@ class CachedDataService:
     def read_cached_data(
         self,
         user_name: str,
-        resource_type: str = None,
-        consent_id: str = None,
-        consent_ids: List[str] = None,
-    ) -> Dict:
+        resource_type: str | None = None,
+        consent_id: str | None = None,
+        consent_ids: list[str] | None = None,
+    ) -> dict:
         """Read a user's cached external data, grouped by source institution.
 
         Serves the dashboard without touching the live source, so one-time consents
@@ -127,7 +126,7 @@ class CachedDataService:
             Dict: {"user_identifier", "institutions": [{institution, consent_id,
                    accounts, products, transactions}]}.
         """
-        query: Dict = {"UserName": user_name}
+        query: dict = {"UserName": user_name}
         if resource_type:
             query["ResourceType"] = resource_type
         if consent_ids is not None:
@@ -136,7 +135,7 @@ class CachedDataService:
             query["ConsentId"] = consent_id
 
         # One entry per (institution, consent) pair, keyed for grouping.
-        grouped: Dict = {}
+        grouped: dict = {}
         key_map = {"ACCOUNT": "accounts", "PRODUCT": "products", "TRANSACTION": "transactions"}
         for doc in self.cached_data_collection.find(query):
             key = (doc.get("SourceInstitution"), doc.get("ConsentId"))
@@ -154,8 +153,8 @@ class CachedDataService:
         return {"user_identifier": user_name, "institutions": list(grouped.values())}
 
     def compute_global_position(
-        self, user_name: str, internal_balance: float = 0.0, consent_ids: List[str] = None
-    ) -> Dict:
+        self, user_name: str, internal_balance: float = 0.0, consent_ids: list[str] | None = None
+    ) -> dict:
         """Compute total balance, total debt, and net worth across all connected banks.
 
         External balance = sum of AccountBalance across cached accounts. External debt =
@@ -176,7 +175,7 @@ class CachedDataService:
         """
         cached = self.read_cached_data(user_name, consent_ids=consent_ids)
 
-        by_institution: List[Dict] = []
+        by_institution: list[dict] = []
         total_balance = internal_balance
         total_debt = 0.0
 
@@ -205,7 +204,7 @@ class CachedDataService:
             "by_institution": by_institution,
         }
 
-    def purge_consent_data(self, consent_id: str) -> Dict:
+    def purge_consent_data(self, consent_id: str) -> dict:
         """Delete all cached data for a consent. Idempotent — 0 deletes is success.
 
         Called on consent revocation (synchronous) and by the expiry sweeper.
@@ -226,7 +225,7 @@ class CachedDataService:
     _DEMO_WINDOW_DAYS = 21
 
     @staticmethod
-    def _shift_transaction_dates(transactions: List[Dict]) -> None:
+    def _shift_transaction_dates(transactions: list[dict]) -> None:
         """Re-date a batch of transactions in place, compressing them into a recent window.
 
         The original set spans months; the dashboard shows only the most recent rows,
@@ -263,7 +262,7 @@ class CachedDataService:
         span = (newest - oldest).days  # 0 when all transactions share one day
 
         window = CachedDataService._DEMO_WINDOW_DAYS
-        end = datetime.now(timezone.utc).date() - timedelta(days=random.randint(0, 1))
+        end = datetime.now(UTC).date() - timedelta(days=random.randint(0, 1))
         start = end - timedelta(days=window)
 
         for txn, original in zip(transactions, days):
@@ -286,7 +285,7 @@ class CachedDataService:
 
     @staticmethod
     def _wrap(consent_id: str, user_name: str, source_institution: str,
-              cached_at: datetime, resource_type: str, payload: Dict) -> Dict:
+              cached_at: datetime, resource_type: str, payload: dict) -> dict:
         """Tag an external-data document with consent metadata for caching."""
         return {
             "ConsentId": consent_id,

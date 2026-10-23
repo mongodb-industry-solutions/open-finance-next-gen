@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 from database.connection import MongoDBConnection
 from services.consents.consent_state_machine import can_retrieve_data
 
@@ -12,7 +13,7 @@ class ConsentValidator:
     def __init__(self, connection: MongoDBConnection, db_name: str, consents_collection_name: str):
         self.consents_collection = connection.get_collection(db_name, consents_collection_name)
 
-    def validate_consent(self, consent_id: str, user_name: str, required_permission: str = None) -> tuple:
+    def validate_consent(self, consent_id: str, user_name: str, required_permission: str | None = None) -> tuple:
         """Validate a consent for data retrieval.
 
         Args:
@@ -35,9 +36,9 @@ class ConsentValidator:
         # Check expiration
         expiration_dt = consent.get("ExpirationDateTime")
         if expiration_dt:
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if expiration_dt.tzinfo is None:
-                expiration_dt = expiration_dt.replace(tzinfo=timezone.utc)
+                expiration_dt = expiration_dt.replace(tzinfo=UTC)
             if expiration_dt < now:
                 self._expire_consent(consent_id)
                 raise ValueError(f"Consent '{consent_id}' has expired.")
@@ -83,7 +84,7 @@ class ConsentValidator:
             consent_id: The ConsentId that was used.
             resource: The resource that was accessed (e.g. 'CUSTOMER_IDENTIFICATION', 'REPAYMENT_HISTORY').
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self.consents_collection.update_one(
             {"ConsentId": consent_id},
             {
@@ -107,7 +108,7 @@ class ConsentValidator:
             str: The final consent status (CONSUMED or AUTHORISED).
         """
         if consent.get("ConsentType") == "ONE_TIME":
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             # Atomic filter on Status=AUTHORISED prevents double-consumption from
             # concurrent requests (TOCTOU race).
             self.consents_collection.update_one(
@@ -127,7 +128,7 @@ class ConsentValidator:
 
     def _expire_consent(self, consent_id: str) -> None:
         """Mark a consent as expired."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self.consents_collection.update_one(
             {"ConsentId": consent_id},
             {

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+
 from bson import ObjectId
 
 # Inspired by https://sentry.io/answers/fastapi-and-mongodb-objectid-object-is-not-iterable-error/#solution-2-define-a-custom-jsonencoder-class

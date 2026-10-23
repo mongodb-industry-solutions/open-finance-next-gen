@@ -7,7 +7,7 @@ package-mode = false
 
 
 [tool.poetry.dependencies]
-python = ">=3.10,<4.0"
+python = ">=3.11,<4.0"
 pymongo = {version = "^4.10.1", extras = ["encryption"]}
 python-dotenv = "^1.0.1"
 fastapi = "^0.115.4"
@@ -16,7 +16,13 @@ slowapi = "^0.1.9"
 voyageai = {version = "^0.3.2", python = "<3.14"}
 pymongo-auth-aws = "^1.3.0"
 apscheduler = "^3.10.4"
+pillow = ">=13.0.0"
+certifi = ">=2026.10.19"
 
+
+[tool.ruff.lint]
+# FastAPI Depends()/Security() defaults and deliberate broad excepts are intentional here
+ignore = ["B008", "BLE001", "TRY002", "RUF012"]
 
 [build-system]
 requires = ["poetry-core"]

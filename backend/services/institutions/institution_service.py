@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class InstitutionService:
         logger.info(f"Retrieved {len(institutions)} institutions")
         return institutions
 
-    def get_institution_by_name(self, institution_name: str) -> Optional[dict]:
+    def get_institution_by_name(self, institution_name: str) -> dict | None:
         """Retrieve an institution by its name.
 
         Args:

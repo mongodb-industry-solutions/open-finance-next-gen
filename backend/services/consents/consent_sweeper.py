@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from services.consents.consent_validator import ConsentValidator
 from services.open_finance.cached_data_service import CachedDataService
@@ -24,7 +24,7 @@ class ConsentSweeper:
 
     def sweep(self) -> None:
         """Expire overdue consents and purge their cached data."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         overdue = self.consents_collection.find({
             "Status": "AUTHORISED",
             "ExpirationDateTime": {"$lte": now},

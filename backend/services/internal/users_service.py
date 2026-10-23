@@ -1,6 +1,7 @@
 import logging
+
 from bson import ObjectId
-from typing import Union
+
 from database.connection import MongoDBConnection
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class UsersService:
         self.customers_collection = connection.get_collection(
             db_name, customers_collection_name)
 
-    def get_user(self, user_identifier: Union[str, ObjectId]) -> dict:
+    def get_user(self, user_identifier: str | ObjectId) -> dict:
         """Retrieve a specific customer by userName, ObjectId, or customerId.
         Args:
             user_identifier (Union[str, ObjectId]): The identifier — userName, ObjectId,
@@ -47,7 +48,7 @@ class UsersService:
             logger.error("No customer found with the given identifier.")
             return None
 
-    def get_customer_id(self, user_identifier: Union[str, ObjectId]) -> Union[str, None]:
+    def get_customer_id(self, user_identifier: str | ObjectId) -> str | None:
         """Resolve any user identifier to the BIAN customerId.
 
         Used by the accounts/transactions/aggregation paths, which now join on
